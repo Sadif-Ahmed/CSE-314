@@ -1,5 +1,5 @@
 #!/bin/bash
-unzip 
 
-#string=hello.world
-#echo ${string: -4}
+
+string=hello.world
+echo ${string:2: -2}
