@@ -28,18 +28,18 @@ visit_and_organise()
 	if [ "${i: -2}" =  ".c" ]
 	then
 	#echo "c file"
-	#mkdir -p $2/C/${i:9:7}
-	cp "$i" "$2/C/${i:9:7}"
+	mkdir -p $2/C/${i:9:7}
+	cp -p "$i" "$2/C/${i:9:7}/main.c"
 	elif [ "${i: -3}" =  ".py" ]
 	then
 	#echo "python file"
-	#mkdir -p $2/Python/${i:9:7}
-	cp "$i" "$2/Python/${i:9:7}"
+	mkdir -p $2/Python/${i:9:7}
+	cp -p "$i" "$2/Python/${i:9:7}/main.py"
 	elif [ "${i: -5}" =  ".java" ]
 	then
 	#echo "java file"
-	#mkdir -p $2/Java/${i:9:7}
-	cp "$i" "$2/Java/${i:9:7}"
+	mkdir -p $2/Java/${i:9:7}
+	cp -p "$i" "$2/Java/${i:9:7}/Main.java"
 	fi	
 	fi
 }
