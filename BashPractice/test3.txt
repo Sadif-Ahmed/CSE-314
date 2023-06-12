@@ -1,0 +1,5 @@
+total 12
+4 drwxr-xr-x 3 fallen fallen 4096 Jun 11 19:58 fallen1
+4 -rwxrwxrwx 1 fallen fallen    9 Jun 11 20:08 test2.txt
+0 -rw-r--r-- 1 fallen fallen    0 Jun 11 20:12 test3.txt
+4 -rwxrwxrwx 1 fallen fallen   10 Jun 11 20:06 test.txt
