@@ -1,5 +1,5 @@
 #!/bin/bash
-#unzip abc.zip -d fallen1
+unzip 
 
-string=hello.world
-echo ${string:2:2}
+#string=hello.world
+#echo ${string: -4}
