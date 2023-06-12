@@ -23,22 +23,22 @@ visit_and_organise()
 	
 	elif [ -f "$1" ]
 	then
-	echo "$i"
-	echo "${i:9:7}"
+	#echo "$i"
+	#echo "${i:9:7}"
 	if [ "${i: -2}" =  ".c" ]
 	then
-	echo "c file"
-	mkdir -p $2/C/${i:9:7}
+	#echo "c file"
+	#mkdir -p $2/C/${i:9:7}
 	cp "$i" "$2/C/${i:9:7}"
 	elif [ "${i: -3}" =  ".py" ]
 	then
-	echo "python file"
-	mkdir -p $2/Python/${i:9:7}
+	#echo "python file"
+	#mkdir -p $2/Python/${i:9:7}
 	cp "$i" "$2/Python/${i:9:7}"
 	elif [ "${i: -5}" =  ".java" ]
 	then
-	echo "java file"
-	mkdir -p $2/Java/${i:9:7}
+	#echo "java file"
+	#mkdir -p $2/Java/${i:9:7}
 	cp "$i" "$2/Java/${i:9:7}"
 	fi	
 	fi
