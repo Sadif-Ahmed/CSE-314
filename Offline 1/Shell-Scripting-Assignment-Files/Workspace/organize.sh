@@ -56,8 +56,8 @@ visit_and_organise()
 	for files in "$5"/*
 	do
 	#echo "$files"
-	flag=0
 	./"$2/C/${i:9:7}/main.out"  < "$files" > "$2/C/${i:9:7}/out$idx.txt"
+	flag=0
 	flag=$(diff -y --suppress-common-lines "$2/C/${i:9:7}/out$idx.txt" "$6/ans$idx.txt" | wc -l)
 	if [ $flag -eq 0 ]
 	then
@@ -81,32 +81,54 @@ visit_and_organise()
 	echo "Executing files for ${i:9:7} "
 	fi
 	idx=1;
+	matched=0
+	not_matched=0
 	for files in "$5"/*
 	do
 	#echo "$files"
 	python3 "$2/Python/${i:9:7}/main.py"  < "$files" > "$2/Python/${i:9:7}/out$idx.txt"
+	flag=0
+	flag=$(diff -y --suppress-common-lines "$2/Python/${i:9:7}/out$idx.txt" "$6/ans$idx.txt" | wc -l)
+	if [ $flag -eq 0 ]
+	then
+	matched=$(($matched+1))
+	else
+	not_matched=$(($not_matched+1))
+	fi
 	idx=$(($idx+1))
 	done
+	echo "${i:9:7},Python,$matched,$not_matched" >> $2/result.csv
 	fi
 	elif [ "${i: -5}" =  ".java" ]
 	then
 	#echo "java file"
 	mkdir -p $2/Java/${i:9:7}
-	cp -p "$i" "$2/Java/${i:9:7}/Main.java"
+	cp -p "$i" "$2/Java/${i:9:7}/Main.java"	
+	javac "$2/Java/${i:9:7}/Main.java"
 	if [ $4 -eq 0 ]
 	then
 	if [ $3 -eq 1 ]
 	then
 	echo "Executing files for ${i:9:7} "
 	fi
-	javac "$2/Java/${i:9:7}/Main.java"
 	idx=1;
+	matched=0
+	not_matched=0
 	for files in "$5"/*
 	do
 	#echo "$files"
 	java -cp "$2/Java/${i:9:7}" Main  < "$files" > "$2/Java/${i:9:7}/out$idx.txt"
+	flag=0
+	flag=$(diff -y --suppress-common-lines "$2/Java/${i:9:7}/out$idx.txt" "$6/ans$idx.txt" | wc -l)
+	if [ $flag -eq 0 ]
+	then
+	matched=$(($matched+1))
+	else
+	not_matched=$(($not_matched+1))
+	fi
 	idx=$(($idx+1))
 	done
+	echo "${i:9:7},Java,$matched,$not_matched" >> $2/result.csv
 	fi
 	fi	
 	fi
@@ -130,7 +152,7 @@ then
 if [ $5 = "-v" ]
 then
 count_test $3
-echo "student_id,type,matched,not_matched" > result.csv
+echo "student_id,type,matched,not_matched" > $2/result.csv
 visit_and_organise unzipped $2 1 0 $3 $4
 elif [ $5 = "-noexecute" ]
 then
