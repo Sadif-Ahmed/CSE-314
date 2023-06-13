@@ -27,7 +27,7 @@ visit_and_organise()
 	
 		for i in "$1"/*
 		do
-			visit_and_organise "$i" $2 $3 $4 $5
+			visit_and_organise "$i" $2 $3 $4 $5 $6
 		done
 	
 	elif [ -f "$1" ]
@@ -51,12 +51,23 @@ visit_and_organise()
 	fi
 	gcc "$2/C/${i:9:7}/main.c" -o "$2/C/${i:9:7}/main.out"	
 	idx=1;
+	matched=0
+	not_matched=0
 	for files in "$5"/*
 	do
 	#echo "$files"
+	flag=0
 	./"$2/C/${i:9:7}/main.out"  < "$files" > "$2/C/${i:9:7}/out$idx.txt"
+	flag=$(diff -y --suppress-common-lines "$2/C/${i:9:7}/out$idx.txt" "$6/ans$idx.txt" | wc -l)
+	if [ $flag -eq 0 ]
+	then
+	matched=$(($matched+1))
+	else
+	not_matched=$(($not_matched+1))
+	fi
 	idx=$(($idx+1))
 	done
+	echo "${i:9:7},C,$matched,$not_matched" >> $2/result.csv
 	fi
 	elif [ "${i: -3}" =  ".py" ]
 	then
@@ -105,23 +116,25 @@ visit_and_organise()
 
 if [ $# -eq 4 ]
 then
-visit_and_organise unzipped $2 0 0 $3
+echo "student_id,type,matched,not_matched" > $2/result.csv
+visit_and_organise unzipped $2 0 0 $3 $4
 elif [ $# -eq 6 ]
 then
 if [ $5 = "-v" ] && [ $6 = "-noexecute" ]
 then
 count_test $3
-visit_and_organise unzipped $2 1 1 $3
+visit_and_organise unzipped $2 1 1 $3 $4
 fi
 elif [ $# -eq 5 ]
 then
 if [ $5 = "-v" ]
 then
 count_test $3
-visit_and_organise unzipped $2 1 0 $3
+echo "student_id,type,matched,not_matched" > result.csv
+visit_and_organise unzipped $2 1 0 $3 $4
 elif [ $5 = "-noexecute" ]
 then
-visit_and_organise unzipped $2 0 1 $3
+visit_and_organise unzipped $2 0 1 $3 $4
 fi
 fi
 
