@@ -9,7 +9,7 @@ for file in "$1"/*
 do
 #echo "${file: -11}"
 mkdir -p unzipped/${file: -11}
-unzip "$file" -d unzipped/${file: -11}
+unzip -oq "$file" -d unzipped/${file: -11}
 done
 count_test()
 {
