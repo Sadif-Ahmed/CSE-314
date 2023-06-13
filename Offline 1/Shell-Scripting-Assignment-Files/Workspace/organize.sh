@@ -1,33 +1,36 @@
 #!/bin/bash
+#making required directories
 mkdir -p $2
 mkdir -p $2/C
 mkdir -p $2/Python
 mkdir -p $2/Java
 mkdir -p unzipped
-
+#unzipping to target directory
 for file in "$1"/*
 do
 #echo "${file: -11}"
 mkdir -p unzipped/${file: -11}
 unzip -oq "$file" -d unzipped/${file: -11}
 done
+#counting test files
 count_test()
 {
-	count=0
+	count=0  
 	for files in "$1"/*
 	do
 	count=$(($count+1))
 	done
 	echo "Found $count test files"
 }
-visit_and_organise()
+#main function
+visit_organise_execute()
 {
 	if [ -d "$1" ]
 	then
 	
 		for i in "$1"/*
 		do
-			visit_and_organise "$i" $2 $3 $4 $5 $6
+			visit_organise_execute "$i" $2 $3 $4 $5 $6    #file visit
 		done
 	
 	elif [ -f "$1" ]
@@ -41,6 +44,7 @@ visit_and_organise()
 	if [ "${i: -2}" =  ".c" ]
 	then
 	#echo "c file"
+	#organising c files
 	mkdir -p $2/C/${i:9:7}
 	cp -p "$i" "$2/C/${i:9:7}/main.c"
 	if [ $4 -eq 0 ]
@@ -49,6 +53,7 @@ visit_and_organise()
 	then
 	echo "Executing files for ${i:9:7} "
 	fi
+	#executing and matching c files
 	gcc "$2/C/${i:9:7}/main.c" -o "$2/C/${i:9:7}/main.out"	
 	idx=1;
 	matched=0
@@ -72,6 +77,7 @@ visit_and_organise()
 	elif [ "${i: -3}" =  ".py" ]
 	then
 	#echo "python file"
+	#organising python files
 	mkdir -p $2/Python/${i:9:7}
 	cp -p "$i" "$2/Python/${i:9:7}/main.py"
 	if [ $4 -eq 0 ]
@@ -80,6 +86,7 @@ visit_and_organise()
 	then
 	echo "Executing files for ${i:9:7} "
 	fi
+	#executing and matching python files
 	idx=1;
 	matched=0
 	not_matched=0
@@ -102,6 +109,7 @@ visit_and_organise()
 	elif [ "${i: -5}" =  ".java" ]
 	then
 	#echo "java file"
+	#organising java files
 	mkdir -p $2/Java/${i:9:7}
 	cp -p "$i" "$2/Java/${i:9:7}/Main.java"	
 	javac "$2/Java/${i:9:7}/Main.java"
@@ -111,6 +119,7 @@ visit_and_organise()
 	then
 	echo "Executing files for ${i:9:7} "
 	fi
+	#executing and matching java files
 	idx=1;
 	matched=0
 	not_matched=0
@@ -134,30 +143,27 @@ visit_and_organise()
 	fi
 }
 
-
-
-if [ $# -eq 4 ]
+if [ $# -eq 4 ] #neither -v nor -noexecute
 then
 echo "student_id,type,matched,not_matched" > $2/result.csv
-visit_and_organise unzipped $2 0 0 $3 $4
+visit_organise_execute unzipped $2 0 0 $3 $4
 elif [ $# -eq 6 ]
 then
-if [ $5 = "-v" ] && [ $6 = "-noexecute" ]
+if [ $5 = "-v" ] && [ $6 = "-noexecute" ] #both -v and -noexecute
 then
 count_test $3
-visit_and_organise unzipped $2 1 1 $3 $4
+visit_organise_execute unzipped $2 1 1 $3 $4
 fi
 elif [ $# -eq 5 ]
 then
-if [ $5 = "-v" ]
+if [ $5 = "-v" ] #only -v
 then
 count_test $3
 echo "student_id,type,matched,not_matched" > $2/result.csv
-visit_and_organise unzipped $2 1 0 $3 $4
-elif [ $5 = "-noexecute" ]
+visit_organise_execute unzipped $2 1 0 $3 $4
+elif [ $5 = "-noexecute" ] #only -noexecute
 then
-visit_and_organise unzipped $2 0 1 $3 $4
+visit_organise_execute unzipped $2 0 1 $3 $4
 fi
 fi
-
 rm -r unzipped
