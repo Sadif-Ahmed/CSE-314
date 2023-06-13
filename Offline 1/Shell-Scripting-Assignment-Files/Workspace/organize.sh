@@ -27,7 +27,7 @@ visit_and_organise()
 	
 		for i in "$1"/*
 		do
-			visit_and_organise "$i" $2 $3 $4
+			visit_and_organise "$i" $2 $3 $4 $5
 		done
 	
 	elif [ -f "$1" ]
@@ -43,56 +43,85 @@ visit_and_organise()
 	#echo "c file"
 	mkdir -p $2/C/${i:9:7}
 	cp -p "$i" "$2/C/${i:9:7}/main.c"
+	if [ $4 -eq 0 ]
+	then
+	if [ $3 -eq 1 ]
+	then
+	echo "Executing files for ${i:9:7} "
+	fi
 	gcc "$2/C/${i:9:7}/main.c" -o "$2/C/${i:9:7}/main.out"	
 	idx=1;
-	for files in "$4"/*
+	for files in "$5"/*
 	do
 	#echo "$files"
 	./"$2/C/${i:9:7}/main.out"  < "$files" > "$2/C/${i:9:7}/out$idx.txt"
 	idx=$(($idx+1))
 	done
+	fi
 	elif [ "${i: -3}" =  ".py" ]
 	then
 	#echo "python file"
 	mkdir -p $2/Python/${i:9:7}
 	cp -p "$i" "$2/Python/${i:9:7}/main.py"
+	if [ $4 -eq 0 ]
+	then
+	if [ $3 -eq 1 ]
+	then
+	echo "Executing files for ${i:9:7} "
+	fi
 	idx=1;
-	for files in "$4"/*
+	for files in "$5"/*
 	do
 	#echo "$files"
 	python3 "$2/Python/${i:9:7}/main.py"  < "$files" > "$2/Python/${i:9:7}/out$idx.txt"
 	idx=$(($idx+1))
 	done
+	fi
 	elif [ "${i: -5}" =  ".java" ]
 	then
 	#echo "java file"
 	mkdir -p $2/Java/${i:9:7}
 	cp -p "$i" "$2/Java/${i:9:7}/Main.java"
+	if [ $4 -eq 0 ]
+	then
+	if [ $3 -eq 1 ]
+	then
+	echo "Executing files for ${i:9:7} "
+	fi
 	javac "$2/Java/${i:9:7}/Main.java"
 	idx=1;
-	for files in "$4"/*
+	for files in "$5"/*
 	do
 	#echo "$files"
 	java -cp "$2/Java/${i:9:7}" Main  < "$files" > "$2/Java/${i:9:7}/out$idx.txt"
 	idx=$(($idx+1))
 	done
+	fi
 	fi	
 	fi
 }
-if [ $# -gt 4 ]
+
+
+
+if [ $# -eq 4 ]
+then
+visit_and_organise unzipped $2 0 0 $3
+elif [ $# -eq 6 ]
+then
+if [ $5 = "-v" ] && [ $6 = "-noexecute" ]
+then
+count_test $3
+visit_and_organise unzipped $2 1 1 $3
+fi
+elif [ $# -eq 5 ]
 then
 if [ $5 = "-v" ]
 then
 count_test $3
-fi
-fi
-if [ $# -gt 4 ]
+visit_and_organise unzipped $2 1 0 $3
+elif [ $5 = "-noexecute" ]
 then
-if [ $5 = "-v" ]
-then
-visit_and_organise unzipped $2 1 $3
-else
-visit_and_organise unzipped $2 0 $3
+visit_and_organise unzipped $2 0 1 $3
 fi
 fi
 
