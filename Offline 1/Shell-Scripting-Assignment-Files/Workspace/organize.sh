@@ -1,4 +1,10 @@
 #!/bin/bash
+if [ $# -lt 4 ]
+then
+echo "Usage:"
+echo "./organize.sh <submission folde> <target folder> <test folder> <answer folder> [-v] [-noexecute]"
+kill -INT $$
+fi
 #making required directories
 mkdir -p $2
 mkdir -p $2/C
