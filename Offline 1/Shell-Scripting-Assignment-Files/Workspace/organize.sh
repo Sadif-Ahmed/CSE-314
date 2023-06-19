@@ -2,7 +2,7 @@
 if [ $# -lt 4 ]
 then
 echo "Usage:"
-echo "./organize.sh <submission folde> <target folder> <test folder> <answer folder> [-v] [-noexecute]"
+echo -n "./organize.sh <submission folde> <target folder> <test folder> <answer folder> [-v] [-noexecute]"
 kill -INT $$
 fi
 #making required directories
