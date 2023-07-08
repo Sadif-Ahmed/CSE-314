@@ -126,7 +126,6 @@ visit_organise_execute()
 	fi
 	mkdir -p $2/Java/${i:9:7}
 	cp -p "$i" "$2/Java/${i:9:7}/Main.java"	
-	javac "$2/Java/${i:9:7}/Main.java"
 	if [ $4 -eq 0 ]
 	then
 	if [ $3 -eq 1 ]
@@ -134,6 +133,7 @@ visit_organise_execute()
 	echo "Executing files for ${i:9:7} "
 	fi
 	#executing and matching java files
+	javac "$2/Java/${i:9:7}/Main.java"
 	idx=1;
 	matched=0
 	not_matched=0
