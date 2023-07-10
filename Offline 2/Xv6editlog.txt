@@ -1,0 +1,45 @@
+For Trace:
+Makefile: added trace.c
+user.h : added trace.c to uprogs and trace syscall to syscall declarations
+usys.pl: added entry for trace syscall
+syscall.h: added SYS_trace array index definition
+sysproc.c: added the definition of uint sys_trace(void) syscall where we set the myproc traced state to input syscall number
+proc.h: added tracedstate variable  to struct proc
+proc.c: reseted the tracedstate variable in freeproc function for consequtive trace and non trace sys call execution
+syscall.c:  added some argument definations,
+            added sys_trace extern instance,
+            added SYS_trace function pointer entry,
+            added three local arrays of syscallnames , syscallargcount and syscallargtypes,
+            acquired and released process lock to store process id and print pid,syscall names and arguments before syscall is called and return value after syscall returns while traced state is set.
+//For History:
+Makefile: added history.c
+user.h : added history.c to uprogs and history syscall to syscall declarations
+usys.pl: added entry for hsitory syscall
+syscall.h: added SYS_hsitory array index definition
+sysproc.c:  added extern variable of the syscallhistorystructs array of syscall.c
+            added the definition of uint sys_history(void) syscall where we store the struct pointer of the input syscall entry in the input address using copyout function 
+syscall_stat.h: added this header file containing the history stat struct
+syscall.c:  included syscallstat header and some variables for exec time calculation,
+            added sys_history extern instance,
+            added SYS_history function pointer entry,
+            added two local arrays of syscallhistorystructs and syscalllocks,
+            acquired and released tickslock twice to capture start and end time for exectime calculation,
+            acquired and released corresponding sycalllock while updateing sycallhistorystruct array entry update,
+//For shutdown:
+Makefile: added exit.c
+user.h : added exit.c to uprogs and shutdown syscall to syscall declarations
+usys.pl: added entry for shutdown syscall
+syscall.h: added SYS_shutdown array index definition
+sysproc.c: added the definition of uint sys_shutdown(void) syscall where we call the shutdown function declared in start.c
+kernelvec.s: assembly code.scratch array stores important hardware info.The 8 bits from 40 index designated for halt flag,
+             the code checks if the scratch[index=40] has 1 set in it or not.If the flag is set then code will jump to halt codeblock,
+             in the halt code block we calculate and set the finisher pass in the address of *VIRT_TEST,
+             this will cut io periferals from qemu and shut it down eventually,
+             enter infinite loop in spin codeblock if this fails.
+start.c: as we are adding another index in scratch assembly array in kernelvec.s we have to increase the timer_scratch array capacity from 5 to 6,
+         we define the newly added index for the storage place for halt flag and declare it 0 at first,
+         added declarattion of shutdown fuction which just sets the halt flag to 1.
+defs.h: we add the declarattion of void shutdown(void) of start.c her to make it recognisable by sys_shutdown
+
+
+                                    
