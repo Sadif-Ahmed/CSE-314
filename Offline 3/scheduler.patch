@@ -61,7 +61,7 @@ index 6624bff..db72a67 100644
 +#define DEFAULT_TICKET_COUNT 10
 \ No newline at end of file
 diff --git a/kernel/proc.c b/kernel/proc.c
-index 959b778..5ac444a 100644
+index 959b778..7d2e8cd 100644
 --- a/kernel/proc.c
 +++ b/kernel/proc.c
 @@ -5,6 +5,7 @@
@@ -105,7 +105,7 @@ index 959b778..5ac444a 100644
    // copy saved user registers.
    *(np->trapframe) = *(p->trapframe);
  
-@@ -434,6 +445,34 @@ wait(uint64 addr)
+@@ -434,6 +445,35 @@ wait(uint64 addr)
    }
  }
  
@@ -130,6 +130,7 @@ index 959b778..5ac444a 100644
 +      }
 +      
 +    }
++    
 +   release(&p->lock);
 +  }
 +
@@ -140,7 +141,7 @@ index 959b778..5ac444a 100644
  // Per-CPU process scheduler.
  // Each CPU calls scheduler() after setting itself up.
  // Scheduler never returns.  It loops, doing:
-@@ -445,29 +484,133 @@ void
+@@ -445,29 +485,138 @@ void
  scheduler(void)
  {
    struct proc *p;
@@ -170,12 +171,12 @@ index 959b778..5ac444a 100644
 +    //Boosting
 +    if(interval>=BOOST_INTERVAL)
 +    {
++      //printf("Boosted...");
 +      for(p = proc; p < &proc[NPROC]; p++)
 +      {
 +        acquire(&p->lock);
 +        if(p->state != UNUSED)
 +        {
-+          p->current_tickets=p->initial_tickets;
 +          p->q=1;
 +        }
 +        release(&p->lock);
@@ -226,6 +227,11 @@ index 959b778..5ac444a 100644
 +        //Round Robin Scheduling
 +        for(p = proc; p < &proc[NPROC] ; p++) {
 +            acquire(&p->lock);
++            //Setting all runnable process 0 current tickets to initial ticket count 
++            if(p->state == RUNNABLE && p->current_tickets<=0)
++                {
++                    p->current_tickets=p->initial_tickets;
++                }
 +            //Found our process 
 +            if(p->state != UNUSED && p->q==2) 
 +            {
@@ -287,7 +293,7 @@ index 959b778..5ac444a 100644
    }
  }
  
-@@ -681,3 +824,52 @@ procdump(void)
+@@ -681,3 +830,52 @@ procdump(void)
      printf("\n");
    }
  }
@@ -475,10 +481,10 @@ index 1de184e..f7b88a9 100644
 \ No newline at end of file
 diff --git a/user/dummyproc.c b/user/dummyproc.c
 new file mode 100644
-index 0000000..ca8dde3
+index 0000000..cae8e45
 --- /dev/null
 +++ b/user/dummyproc.c
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,39 @@
 +#include "kernel/param.h"
 +#include "kernel/types.h"
 +#include "kernel/stat.h"
@@ -490,11 +496,15 @@ index 0000000..ca8dde3
 +        printf("Usage: testticket <number of tickets>\n");
 +        exit(1);
 +    }
-+    printf("Setting ticket\n");
++    printf("Trying to set tickets.\n");
 +    int number = atoi(argv[1]);
 +    if(settickets(number)==-1){
-+        printf("Error setting ticket\n");
++        printf("Error while setting tickets.\n");
 +        exit(1);
++    }
++    else
++    {
++        printf("Successfully set tickets.\n");
 +    }
 +    int rc = fork();
 +    if(rc<0){
