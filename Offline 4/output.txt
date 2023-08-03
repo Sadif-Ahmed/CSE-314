@@ -1,57 +1,66 @@
-Script started on 2023-08-04 00:06:18+06:00 [TERM="xterm-256color" TTY="/dev/pts/1" COLUMNS="53" LINES="8"]
-I am inside std id 1
-I am inside std id 3
-I am inside std id 5
-I am inside std id 4
-I am inside std id 7
-I am inside std id 8
-I am inside std id 2
-I am inside std id 6
-I am inside std id 9
-I am inside std id 10
-I am inside std id 11
-I am inside std id 12
-I am inside std id 13
-I am inside std id 14
-I am inside std id 15
-Student 3 has arrived at the print station at time 1
-Student 6 has arrived at the print station at time 1
-Student 4 has arrived at the print station at time 2
-Student 5 has arrived at the print station at time 2
-Student 6 has finished printing at time 11
-Student 3 has finished printing at time 11
-Student 10 has arrived at the print station at time 11
-Student 7 has arrived at the print station at time 11
-Student 4 has finished printing at time 12
-Student 5 has finished printing at time 12
-Student 8 has arrived at the print station at time 12
-Student 1 has arrived at the print station at time 12
-Student 7 has finished printing at time 21
-Student 10 has finished printing at time 21
-Student 11 has arrived at the print station at time 21
-Student 2 has arrived at the print station at time 21
-Student 8 has finished printing at time 22
-Student 12 has arrived at the print station at time 22
-Student 1 has finished printing at time 22
-Student 9 has arrived at the print station at time 22
-Student 11 has finished printing at time 31
-Student 15 has arrived at the print station at time 31
-Student 2 has finished printing at time 31
-Student 14 has arrived at the print station at time 31
+Script started on 2023-08-04 01:13:51+06:00 [TERM="xterm-256color" TTY="/dev/pts/1" COLUMNS="138" LINES="8"]
+Student 13 has arrived at the print station at time 1
+Student 2 has arrived at the print station at time 2
+Student 7 has arrived at the print station at time 3
+Student 4 has arrived at the print station at time 4
+Staff1 has started reading the entry book at time 4.No. of submission = 0
+Staff2 has started reading the entry book at time 8.No. of submission = 0
+Staff1 has started reading the entry book at time 8.No. of submission = 0
+Student 13 has finished printing at time 11
+Student 1 has arrived at the print station at time 11
+Student 2 has finished printing at time 12
+Student 6 has arrived at the print station at time 12
+Student 7 has finished printing at time 13
+Student 3 has arrived at the print station at time 13
+Staff1 has started reading the entry book at time 13.No. of submission = 0
+Student 4 has finished printing at time 14
+Student 8 has arrived at the print station at time 14
+Staff2 has started reading the entry book at time 16.No. of submission = 0
+Staff1 has started reading the entry book at time 20.No. of submission = 0
+Student 1 has finished printing at time 21
+Student 5 has arrived at the print station at time 21
+Student 6 has finished printing at time 22
+Student 10 has arrived at the print station at time 22
+Student 3 has finished printing at time 23
+Student 11 has arrived at the print station at time 23
+Student 8 has finished printing at time 24
+Student 12 has arrived at the print station at time 24
+Staff2 has started reading the entry book at time 24.No. of submission = 0
+Staff1 has started reading the entry book at time 27.No. of submission = 0
+Staff2 has started reading the entry book at time 29.No. of submission = 0
+Student 5 has finished printing at time 31
 Group 1 has finished printing at time 31
 Group 1 has started binding at time 31
-Student 12 has finished printing at time 32
-Student 9 has finished printing at time 32
-Student 13 has arrived at the print station at time 32
-Group 2 has finished printing at time 32
-Group 2 has started binding at time 32
+Student 9 has arrived at the print station at time 31
+Student 10 has finished printing at time 32
+Student 14 has arrived at the print station at time 32
+Student 11 has finished printing at time 33
+Student 15 has arrived at the print station at time 33
+Staff2 has started reading the entry book at time 33.No. of submission = 0
+Student 12 has finished printing at time 34
+Staff1 has started reading the entry book at time 34.No. of submission = 0
+Staff2 has started reading the entry book at time 37.No. of submission = 0
 Group 1 has finished binding at time 39
-Group 2 has finished binding at time 40
-Student 15 has finished printing at time 41
-Student 14 has finished printing at time 41
-Student 13 has finished printing at time 42
-Group 3 has finished printing at time 42
-Group 3 has started binding at time 42
-Group 3 has finished binding at time 50
+Group 1 has started submitting at time 39
+Student 9 has finished printing at time 41
+Group 2 has finished printing at time 41
+Group 2 has started binding at time 41
+Student 14 has finished printing at time 42
+Group 1 has finished submitting at time 42
+Staff1 has started reading the entry book at time 42.No. of submission = 1
+Student 15 has finished printing at time 43
+Group 3 has finished printing at time 43
+Group 3 has started binding at time 43
+Staff2 has started reading the entry book at time 44.No. of submission = 1
+Group 2 has finished binding at time 49
+Group 2 has started submitting at time 49
+Staff1 has started reading the entry book at time 50.No. of submission = 1
+Group 3 has finished binding at time 51
+Group 3 has started submitting at time 51
+Staff2 has started reading the entry book at time 51.No. of submission = 1
+Group 2 has finished submitting at time 54
+Group 3 has finished submitting at time 54
+Staff2 has started reading the entry book at time 56.No. of submission = 3
+Staff1 has started reading the entry book at time 58.No. of submission = 3
 
-Script done on 2023-08-04 00:07:08+06:00 [COMMAND_EXIT_CODE="0"]
+Script done on 2023-08-04 01:14:49+06:00 [COMMAND_EXIT_CODE="0"]
