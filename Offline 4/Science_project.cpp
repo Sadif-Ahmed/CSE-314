@@ -11,7 +11,8 @@ int n,m,w,x,y;
 
 default_random_engine generator;
 poisson_distribution<int> distribution(4.1);
-int rand_number = distribution(generator);
+int rand_number;
+
 
 auto start = chrono::steady_clock::now();
 
@@ -23,15 +24,23 @@ int get_curr_time(){
 class group;
 class student
 {
-    private:
+    public:
     int std_id;
     group *grp;
     bool is_leader=false;
-    public:
+    vector<group *> allgroups;
+
+    bool print_done;
+    bool waiting;
+    pthread_mutex_t printed_lock;
+    pthread_mutex_t waiting_lock;
+    sem_t wait_sem;
+    
     student(int std_id,group *g)
     {
         this->std_id=std_id;
         this->grp=g;
+        sem_init(&wait_sem,0,0);
     }
     int get_id()
     {
@@ -57,24 +66,43 @@ class student
     {
         printf("Student %d has finished printing at time %d\n",std_id,get_curr_time());
     }
+    void add_allgroups(group* grp[],int size)
+    {
+        for(int i=0;i<size;i++)
+        {
+            allgroups.push_back(grp[i]);
+        }
+    }
+    bool release_waiting_print()
+    {
+        bool ret=false;
+
+        pthread_mutex_lock(&waiting_lock);
+        if(waiting)
+        {
+            ret=true;
+            waiting=false;
+            sem_post(&wait_sem);
+        }
+        pthread_mutex_unlock(&waiting_lock);
+
+        return ret;
+
+    }
    
 };
- void * student_work(void *st)
-    {
-        student * std = (student *) st;
-        printf("I am inside std id %d\n",std->get_id());
-        pthread_exit(NULL);
-    }
 class group
 {
-    private:
+    public:
     int grp_id;
     vector<student*> students;
     student * grpleader;
-    public:
+    sem_t print_done;
+    
     group(int grp_id)
     {
         this->grp_id=grp_id;
+        sem_init(&print_done,0,0);
     }
     void set_leader(student *std)
     {
@@ -111,19 +139,99 @@ class group
     {
         printf("Group %d has finished binding at time %d\n",grp_id,get_curr_time());
     }
+    sem_t * get_print_done_sem()
+    {
+        return &print_done;
+    }
+    void notify(student *std)
+    {
+        int printer_id = std->get_id() %4;
+
+        for(int i=0;i<students.size();i++)
+        {
+            int temp_printer_id = students[i]->get_id()%4;
+            if(printer_id==temp_printer_id && students[i]->release_waiting_print())
+            {
+                return;
+            } 
+        }
+
+        for(int i=0;i<std->allgroups.size();i++)
+        {
+            if(std->allgroups[i]!=this)
+            {
+                for(int j=0;j<std->allgroups[i]->students.size();j++)
+        {
+            int temp_printer_id = std->allgroups[i]->students[j]->get_id()%4;
+            if(printer_id==temp_printer_id && std->allgroups[i]->students[j]->release_waiting_print())
+            {
+                return;
+            } 
+        }
+            }
+        }
+    }
 
 };
+
+static bool printer_status[4];
+static pthread_mutex_t printer_locks[4];
+static sem_t binder_sem;
+ void * student_work(void *st)
+    {
+        student * std = (student *) st;
+        printf("I am inside std id %d\n",std->get_id());
+
+        rand_number = distribution(generator)%3 + 1;
+        sleep(rand_number);
+
+        int printer_id = std->get_id()%4;
+        pthread_mutex_lock(&printer_locks[printer_id]);
+
+        if(printer_status[printer_id])
+        {
+            pthread_mutex_unlock(&printer_locks[printer_id]);
+            pthread_mutex_lock(&std->waiting_lock);
+            std->waiting=true;
+            pthread_mutex_unlock(&std->waiting_lock);
+            sem_wait(&std->wait_sem);
+        }
+        else
+        {
+            printer_status[printer_id]=true;
+            pthread_mutex_unlock(&printer_locks[printer_id]);
+        }
+        std->printing_start();
+        sleep(w);
+        std->printing_end();
+        pthread_mutex_lock(&printer_locks[printer_id]);
+        printer_status[printer_id]=false;
+        pthread_mutex_unlock(&printer_locks[printer_id]);
+
+        std->get_group()->notify(std);
+
+        pthread_exit(NULL);
+    }
 
 void read_file(){
     fstream myfile("input", std::ios_base::in);
     myfile >> n >> m;
     myfile >> w >> x >> y;
 }
-
+void init()
+{
+    for(int i=0;i<4;i++)
+    {
+        printer_status[i]=false;
+        pthread_mutex_init(&printer_locks[i],0);
+    }
+    sem_init(&binder_sem,0,2);
+}
 int main()
 {
     read_file();
     //printf("n:%d\tm:%d\tw:%d\tx:%d\ty:%d\n",n,m,w,x,y);
+    init();
     int num_of_groups=n/m;
     student * students[n];
     group * groups[num_of_groups];
@@ -160,6 +268,7 @@ int main()
     int stat;
     for(int i=0;i<n;i++)
     {
+        students[i]->add_allgroups(groups,num_of_groups);
         stat=pthread_create(&threads[i],NULL,student_work,(void *)students[i]);
         if(stat)
         {
