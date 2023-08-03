@@ -174,9 +174,9 @@ class group
 
 };
 
-static bool printer_status[4];
-static pthread_mutex_t printer_locks[4];
-static sem_t binder_sem;
+bool printer_status[4];
+pthread_mutex_t printer_locks[4];
+sem_t binder_sem;
  void * student_work(void *st)
     {
         student * std = (student *) st;
@@ -209,7 +209,22 @@ static sem_t binder_sem;
         pthread_mutex_unlock(&printer_locks[printer_id]);
 
         std->get_group()->notify(std);
+        sem_post(std->get_group()->get_print_done_sem()); 
+        if(!std->is_leader)
+        {
+            pthread_exit(NULL);
+        }
+        for(int i=0;i<std->get_group()->students.size();i++)
+        {
+          sem_wait(std->get_group()->get_print_done_sem());   
+        }
+        std->get_group()->printing_end();
 
+        sem_wait(&binder_sem);
+        std->get_group()->binding_start();
+        sleep(x);
+        std->get_group()->binding_end();
+        sem_post(&binder_sem);
         pthread_exit(NULL);
     }
 
