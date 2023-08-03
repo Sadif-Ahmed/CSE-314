@@ -1,0 +1,18 @@
+Script started on 2023-08-03 16:50:07+06:00 [TERM="xterm-256color" TTY="/dev/pts/1" COLUMNS="136" LINES="15"]
+I am inside std id 1
+I am inside std id 3
+I am inside std id 5
+I am inside std id 2
+I am inside std id 4
+I am inside std id 6
+I am inside std id 7
+I am inside std id 9
+I am inside std id 8
+I am inside std id 10
+I am inside std id 12
+I am inside std id 13
+I am inside std id 11
+I am inside std id 14
+I am inside std id 15
+
+Script done on 2023-08-03 16:50:07+06:00 [COMMAND_EXIT_CODE="0"]
