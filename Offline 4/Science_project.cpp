@@ -10,8 +10,8 @@ using namespace std;
 int n,m,w,x,y;
 
 default_random_engine generator;
-poisson_distribution<int> distribution(9.9);
-int rand_mod=5;
+poisson_distribution<int> distribution(5.0);
+int rand_mod=10;
 int rand_number;
 
 bool printer_status[4];
@@ -411,6 +411,8 @@ int main()
             printf("Error while creating thread\n");
             exit(-1);
         }
+        rand_number = distribution(generator)%rand_mod + 1;
+        sleep(rand_number);
         }
         else if(i == w/7)
         {
@@ -420,6 +422,7 @@ int main()
             printf("Error while creating thread\n");
             exit(-1);
         }
+        
         }
     }
     
