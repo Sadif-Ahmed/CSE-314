@@ -11,7 +11,7 @@ int n,m,w,x,y;
 
 default_random_engine generator;
 poisson_distribution<int> distribution(5.0);
-int rand_mod=10;
+int rand_mod=5;
 int rand_number;
 
 bool printer_status[4];
@@ -51,6 +51,8 @@ class student
         this->std_id=std_id;
         this->grp=g;
         sem_init(&wait_sem,0,0);
+        pthread_mutex_init(&printed_lock,0);
+        pthread_mutex_init(&waiting_lock,0);
     }
     int get_id()
     {
@@ -218,10 +220,13 @@ class staff
     {
         printf("Staff%d has started reading the entry book at time %d.No. of submission = %d\n",staff_id,get_curr_time(),submission_count);
     }
-    static void accept_submission()
+    static void accept_submission(student* std)
     {
         pthread_mutex_lock(&read_write_lock);
         submission_count++;
+        std->get_group()->submit_start();
+        sleep(y);
+        std->get_group()->submit_end();
         pthread_mutex_unlock(&read_write_lock);
     }
 };
@@ -283,10 +288,7 @@ class staff
         sem_post(&binder_sem);
         //Ended Binding.Start Submitting.
         std->get_group()->submit_arrival();
-        staff::accept_submission();
-        std->get_group()->submit_start();
-        sleep(y);
-        std->get_group()->submit_end();
+        staff::accept_submission(std);
         //All done exit
         pthread_exit(NULL);
     }
@@ -307,8 +309,9 @@ void * staff_work(void *st)
         }
         pthread_mutex_unlock(&reader_lock);
 
-        sleep(y);
         stf->read();
+        sleep(y);
+        
 
         pthread_mutex_lock(&reader_lock);
         reader_count--;
