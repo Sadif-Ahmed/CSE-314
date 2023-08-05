@@ -6,23 +6,26 @@
 #include <random>
 #include <bits/stdc++.h>
 using namespace std;
-
+//Parametres
 int n,m,w,x,y;
-
+//Random Number Generator
 default_random_engine generator;
 poisson_distribution<int> distribution(5.0);
 int rand_mod=5;
 int rand_number;
-
+//Printer variable and locks
+int number_of_printers=4;
 bool printer_status[4];
 pthread_mutex_t printer_locks[4];
+//Binder Semaphore
 sem_t binder_sem;
+//Entry-Book variables and locks
 int submission_count;
 int reader_count;
 pthread_mutex_t reader_lock;
 pthread_mutex_t read_write_lock;
-int number_of_printers=4;
 
+//Time Calculation
 auto start = chrono::steady_clock::now();
 
 int get_curr_time(){
@@ -42,7 +45,6 @@ class student
 
     bool print_done;
     bool waiting;
-    pthread_mutex_t printed_lock;
     pthread_mutex_t waiting_lock;
     sem_t wait_sem;
     
@@ -51,7 +53,6 @@ class student
         this->std_id=std_id;
         this->grp=g;
         sem_init(&wait_sem,0,0);
-        pthread_mutex_init(&printed_lock,0);
         pthread_mutex_init(&waiting_lock,0);
     }
     int get_id()
@@ -88,22 +89,6 @@ class student
         {
             allgroups.push_back(grp[i]);
         }
-    }
-    bool release_waiting_print()
-    {
-        bool ret=false;
-
-        pthread_mutex_lock(&waiting_lock);
-        if(waiting)
-        {
-            ret=true;
-            waiting=false;
-            sem_post(&wait_sem);
-        }
-        pthread_mutex_unlock(&waiting_lock);
-
-        return ret;
-
     }
    
 };
@@ -179,16 +164,25 @@ class group
     void notify(student *std)
     {
         int printer_id = std->get_id() % number_of_printers;
-
+        //Looking for waiting students in own group
         for(int i=0;i<students.size();i++)
         {
             int temp_printer_id = students[i]->get_id()%number_of_printers;
-            if(printer_id==temp_printer_id && students[i]->release_waiting_print())
+            if(printer_id==temp_printer_id )
             {
-                return;
+                pthread_mutex_lock(&students[i]->waiting_lock);
+                if(students[i]->waiting)
+                {
+                    students[i]->waiting=false;
+                    sem_post(&students[i]->wait_sem);
+                    pthread_mutex_unlock(&students[i]->waiting_lock);
+                    return;
+                }
+                pthread_mutex_unlock(&students[i]->waiting_lock);
+                
             } 
         }
-
+        //Looking for waiting students in other groups
         for(int i=0;i<std->allgroups.size();i++)
         {
             if(std->allgroups[i]!=this)
@@ -196,9 +190,17 @@ class group
                 for(int j=0;j<std->allgroups[i]->students.size();j++)
         {
             int temp_printer_id = std->allgroups[i]->students[j]->get_id()%number_of_printers;
-            if(printer_id==temp_printer_id && std->allgroups[i]->students[j]->release_waiting_print())
+            if(printer_id==temp_printer_id )
             {
-                return;
+                pthread_mutex_lock(&std->allgroups[i]->students[j]->waiting_lock);
+                if(std->allgroups[i]->students[j]->waiting)
+                {
+                    std->allgroups[i]->students[j]->waiting=false;
+                    sem_post(&std->allgroups[i]->students[j]->wait_sem);
+                    pthread_mutex_unlock(&std->allgroups[i]->students[j]->waiting_lock);
+                    return;
+                }
+                pthread_mutex_unlock(&std->allgroups[i]->students[j]->waiting_lock);
             } 
         }
             }
@@ -216,9 +218,13 @@ class staff
     {
         staff_id=id;
     }
-    void read()
+    void read_start()
     {
-        printf("Staff%d has started reading the entry book at time %d.No. of submission = %d\n",staff_id,get_curr_time(),submission_count);
+        printf("Staff%d has started reading the entry book at time %d\n",staff_id,get_curr_time());
+    }
+    void read_end()
+    {
+        printf("Staff%d has finished reading the entry book at time %d.No. of submission = %d\n",staff_id,get_curr_time(),submission_count);
     }
     static void accept_submission(student* std)
     {
@@ -309,9 +315,9 @@ void * staff_work(void *st)
         }
         pthread_mutex_unlock(&reader_lock);
 
-        stf->read();
+        stf->read_start();
         sleep(y);
-        
+        stf->read_end();
 
         pthread_mutex_lock(&reader_lock);
         reader_count--;
@@ -326,8 +332,9 @@ void * staff_work(void *st)
 
         if(submission_count==n/m)
         {
+            stf->read_start();
             sleep(y);
-            stf->read();
+            stf->read_end();
             break;
         }
         }
