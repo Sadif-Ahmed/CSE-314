@@ -24,7 +24,7 @@ int submission_count;
 int reader_count;
 pthread_mutex_t reader_lock;
 pthread_mutex_t read_write_lock;
-
+pthread_mutex_t print_lock;
 //Time Calculation
 auto start = chrono::steady_clock::now();
 
@@ -40,10 +40,9 @@ class student
     public:
     int std_id;
     group *grp;
-    bool is_leader=false;
+    bool is_leader;
     vector<group *> allgroups;
 
-    bool print_done;
     bool waiting;
     pthread_mutex_t waiting_lock;
     sem_t wait_sem;
@@ -52,6 +51,8 @@ class student
     {
         this->std_id=std_id;
         this->grp=g;
+        waiting=false;
+        is_leader=false;
         sem_init(&wait_sem,0,0);
         pthread_mutex_init(&waiting_lock,0);
     }
@@ -69,19 +70,27 @@ class student
     }
     void print()
     {
+        pthread_mutex_lock(&print_lock);
         printf("The student id: %d\n",get_id());
+        pthread_mutex_unlock(&print_lock);
     }
     void printing_arrival()
     {
-        printf("Student %d has arrived at the print station at time %d\n",std_id,get_curr_time());
+        pthread_mutex_lock(&print_lock);
+        printf("Student %d has arrived at the print station %d at time %d\n",std_id,((std_id%number_of_printers)+1),get_curr_time());
+        pthread_mutex_unlock(&print_lock);    
     }
     void printing_start()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Student %d has started printing at time %d\n",std_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     void printing_end()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Student %d has finished printing at time %d\n",std_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     void add_allgroups(group* grp[],int size)
     {
@@ -120,10 +129,14 @@ class group
     }
     void print()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Group Id: %d\n",grp_id);
         printf("Leader: ");
+        pthread_mutex_unlock(&print_lock);
         grpleader->print();
+        pthread_mutex_lock(&print_lock);
         printf("Members:\n");
+        pthread_mutex_unlock(&print_lock);
         for(int i=0;i<students.size();i++)
         {
             students[i]->print();
@@ -131,31 +144,45 @@ class group
     }
     void printing_end()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Group %d has finished printing at time %d\n",grp_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     void binding_arrival()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Group %d has arrived at binding station at time %d\n",grp_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     void binding_start()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Group %d has started binding at time %d\n",grp_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     void binding_end()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Group %d has finished binding at time %d\n",grp_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     void submit_arrival()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Group %d has arrived at entry-book station at time %d\n",grp_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     void submit_start()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Group %d has started submitting at time %d\n",grp_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     void submit_end()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Group %d has finished submitting at time %d\n",grp_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     sem_t * get_print_done_sem()
     {
@@ -220,11 +247,15 @@ class staff
     }
     void read_start()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Staff%d has started reading the entry book at time %d\n",staff_id,get_curr_time());
+        pthread_mutex_unlock(&print_lock);
     }
     void read_end()
     {
+        pthread_mutex_lock(&print_lock);
         printf("Staff%d has finished reading the entry book at time %d.No. of submission = %d\n",staff_id,get_curr_time(),submission_count);
+        pthread_mutex_unlock(&print_lock);
     }
     static void accept_submission(student* std)
     {
@@ -358,6 +389,7 @@ void init()
     reader_count=0;
     pthread_mutex_init(&reader_lock,0);
     pthread_mutex_init(&read_write_lock,0);
+    pthread_mutex_init(&print_lock,0);
 }
 int main()
 {
@@ -410,7 +442,9 @@ int main()
         stat=pthread_create(&student_threads[i],NULL,student_work,(void *)students[i]);
         if(stat)
         {
+            pthread_mutex_lock(&print_lock);
             printf("Error while creating thread\n");
+            pthread_mutex_unlock(&print_lock);
             exit(-1);
         }
         if( i == w/2)
@@ -418,7 +452,9 @@ int main()
         stat=pthread_create(&staff_threads[0],NULL,staff_work,(void *)staffs[0]);
         if(stat)
         {
+            pthread_mutex_lock(&print_lock);
             printf("Error while creating thread\n");
+            pthread_mutex_unlock(&print_lock);
             exit(-1);
         }
         rand_number = distribution(generator)%rand_mod + 1;
@@ -429,7 +465,9 @@ int main()
             stat=pthread_create(&staff_threads[1],NULL,staff_work,(void *)staffs[1]);
         if(stat)
         {
+            pthread_mutex_lock(&print_lock);
             printf("Error while creating thread\n");
+            pthread_mutex_unlock(&print_lock);
             exit(-1);
         }
         
