@@ -342,7 +342,7 @@ void * staff_work(void *st)
 }
 
 void read_file(){
-    fstream myfile("input", std::ios_base::in);
+    fstream myfile("input.txt", std::ios_base::in);
     myfile >> n >> m;
     myfile >> w >> x >> y;
 }
@@ -424,7 +424,7 @@ int main()
         rand_number = distribution(generator)%rand_mod + 1;
         sleep(rand_number);
         }
-        else if(i == w/7)
+        if(i == w/7)
         {
             stat=pthread_create(&staff_threads[1],NULL,staff_work,(void *)staffs[1]);
         if(stat)

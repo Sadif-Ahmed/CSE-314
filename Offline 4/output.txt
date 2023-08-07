@@ -1,107 +1,389 @@
-Script started on 2023-08-05 20:48:35+06:00 [TERM="xterm-256color" TTY="/dev/pts/1" COLUMNS="131" LINES="12"]
-Student 1 has arrived at the print station at time 1
-Student 3 has arrived at the print station at time 1
-Student 3 has started printing at time 1
-Student 1 has started printing at time 1
-Student 4 has arrived at the print station at time 2
-Student 4 has started printing at time 2
-Staff1 has started reading the entry book at time 2
+Script started on 2023-08-07 12:30:57+06:00 [TERM="xterm-256color" TTY="/dev/pts/2" COLUMNS="95" LINES="12"]
+Staff2 has started reading the entry book at time 2
+Student 9 has arrived at the print station at time 2
+Student 9 has started printing at time 2
+Student 11 has arrived at the print station at time 2
+Student 11 has started printing at time 2
+Student 18 has arrived at the print station at time 2
+Student 18 has started printing at time 2
+Student 33 has arrived at the print station at time 2
+Student 37 has arrived at the print station at time 2
+Student 49 has arrived at the print station at time 2
+Student 53 has arrived at the print station at time 2
+Student 56 has arrived at the print station at time 2
+Student 56 has started printing at time 2
+Student 60 has arrived at the print station at time 2
+Student 65 has arrived at the print station at time 2
+Student 68 has arrived at the print station at time 2
+Student 69 has arrived at the print station at time 2
+Student 70 has arrived at the print station at time 2
+Student 72 has arrived at the print station at time 2
+Student 75 has arrived at the print station at time 2
+Student 82 has arrived at the print station at time 2
+Student 87 has arrived at the print station at time 2
+Student 91 has arrived at the print station at time 2
+Student 93 has arrived at the print station at time 2
+Student 95 has arrived at the print station at time 2
+Staff1 has started reading the entry book at time 3
+Student 1 has arrived at the print station at time 3
 Student 2 has arrived at the print station at time 3
+Student 6 has arrived at the print station at time 3
+Student 5 has arrived at the print station at time 3
+Student 8 has arrived at the print station at time 3
+Student 7 has arrived at the print station at time 3
+Student 13 has arrived at the print station at time 3
+Student 15 has arrived at the print station at time 3
+Student 16 has arrived at the print station at time 3
+Student 11 has finished printing at time 3
+Student 9 has finished printing at time 3
+Student 18 has finished printing at time 3
+Student 17 has arrived at the print station at time 3
+Student 17 has started printing at time 3
 Student 2 has started printing at time 3
-Staff2 has started reading the entry book at time 3
-Student 9 has arrived at the print station at time 3
-Student 11 has arrived at the print station at time 3
-Student 7 has arrived at the print station at time 4
-Student 8 has arrived at the print station at time 4
-Student 13 has arrived at the print station at time 4
-Student 15 has arrived at the print station at time 4
-Student 5 has arrived at the print station at time 5
-Student 6 has arrived at the print station at time 5
-Staff1 has finished reading the entry book at time 5.No. of submission = 0
-Student 10 has arrived at the print station at time 5
-Staff2 has finished reading the entry book at time 6.No. of submission = 0
-Staff1 has started reading the entry book at time 7
-Student 12 has arrived at the print station at time 7
-Student 14 has arrived at the print station at time 7
-Staff2 has started reading the entry book at time 8
-Staff1 has finished reading the entry book at time 10.No. of submission = 0
-Student 1 has finished printing at time 11
-Student 3 has finished printing at time 11
-Student 5 has started printing at time 11
-Student 7 has started printing at time 11
-Staff2 has finished reading the entry book at time 11.No. of submission = 0
-Student 4 has finished printing at time 12
-Student 8 has started printing at time 12
-Staff2 has started reading the entry book at time 12
-Student 2 has finished printing at time 13
-Student 6 has started printing at time 13
-Staff1 has started reading the entry book at time 13
-Staff2 has finished reading the entry book at time 15.No. of submission = 0
-Staff1 has finished reading the entry book at time 16.No. of submission = 0
-Staff2 has started reading the entry book at time 19
-Staff1 has started reading the entry book at time 20
-Student 5 has finished printing at time 21
-Group 1 has finished printing at time 21
-Group 1 has arrived at binding station at time 21
-Group 1 has started binding at time 21
-Student 7 has finished printing at time 21
-Student 9 has started printing at time 21
-Student 11 has started printing at time 21
-Student 8 has finished printing at time 22
-Student 12 has started printing at time 22
-Staff2 has finished reading the entry book at time 22.No. of submission = 0
-Student 6 has finished printing at time 23
-Student 10 has started printing at time 23
-Staff1 has finished reading the entry book at time 23.No. of submission = 0
-Staff2 has started reading the entry book at time 24
-Staff1 has started reading the entry book at time 25
-Staff2 has finished reading the entry book at time 27.No. of submission = 0
-Staff1 has finished reading the entry book at time 28.No. of submission = 0
-Group 1 has finished binding at time 29
-Group 1 has arrived at entry-book station at time 29
-Group 1 has started submitting at time 29
-Student 9 has finished printing at time 31
-Student 11 has finished printing at time 31
-Student 13 has started printing at time 31
-Student 15 has started printing at time 31
-Student 12 has finished printing at time 32
-Group 1 has finished submitting at time 32
-Staff2 has started reading the entry book at time 32
-Staff1 has started reading the entry book at time 32
-Student 10 has finished printing at time 33
-Group 2 has finished printing at time 33
-Group 2 has arrived at binding station at time 33
-Group 2 has started binding at time 33
-Student 14 has started printing at time 33
-Staff2 has finished reading the entry book at time 35.No. of submission = 1
-Staff1 has finished reading the entry book at time 35.No. of submission = 1
-Staff1 has started reading the entry book at time 36
-Staff2 has started reading the entry book at time 38
-Staff1 has finished reading the entry book at time 39.No. of submission = 1
-Staff1 has started reading the entry book at time 40
-Group 2 has finished binding at time 41
-Group 2 has arrived at entry-book station at time 41
-Student 15 has finished printing at time 41
-Student 13 has finished printing at time 41
-Staff2 has finished reading the entry book at time 41.No. of submission = 1
-Student 14 has finished printing at time 43
-Group 3 has finished printing at time 43
-Group 3 has arrived at binding station at time 43
-Group 3 has started binding at time 43
-Staff1 has finished reading the entry book at time 43.No. of submission = 1
-Group 2 has started submitting at time 43
-Group 2 has finished submitting at time 46
-Staff2 has started reading the entry book at time 46
-Staff1 has started reading the entry book at time 46
-Staff2 has finished reading the entry book at time 49.No. of submission = 2
-Staff1 has finished reading the entry book at time 49.No. of submission = 2
-Group 3 has finished binding at time 51
-Group 3 has arrived at entry-book station at time 51
-Group 3 has started submitting at time 51
-Staff2 has started reading the entry book at time 53
-Group 3 has finished submitting at time 54
-Staff1 has started reading the entry book at time 54
-Staff2 has finished reading the entry book at time 56.No. of submission = 3
-Staff1 has finished reading the entry book at time 57.No. of submission = 3
+Student 1 has started printing at time 3
+Student 22 has arrived at the print station at time 3
+Student 22 has started printing at time 3
+Student 35 has arrived at the print station at time 3
+Student 35 has started printing at time 3
+Student 25 has arrived at the print station at time 3
+Student 40 has arrived at the print station at time 3
+Student 23 has arrived at the print station at time 3
+Student 15 has started printing at time 3
+Student 24 has arrived at the print station at time 3
+Staff2 has finished reading the entry book at time 3.No. of submission = 0
+Student 47 has arrived at the print station at time 3
+Student 55 has arrived at the print station at time 3
+Student 57 has arrived at the print station at time 3
+Student 56 has finished printing at time 3
+Student 60 has started printing at time 3
+Student 64 has arrived at the print station at time 3
+Student 64 has started printing at time 3
+Student 66 has arrived at the print station at time 3
+Student 77 has arrived at the print station at time 3
+Student 76 has arrived at the print station at time 3
+Student 78 has arrived at the print station at time 3
+Student 86 has arrived at the print station at time 3
+Student 94 has arrived at the print station at time 3
+Staff1 has finished reading the entry book at time 4.No. of submission = 0
+Student 10 has arrived at the print station at time 4
+Student 19 has arrived at the print station at time 4
+Student 27 has arrived at the print station at time 4
+Student 17 has finished printing at time 4
+Student 2 has finished printing at time 4
+Student 1 has finished printing at time 4
+Student 6 has started printing at time 4
+Student 5 has started printing at time 4
+Student 22 has finished printing at time 4
+Student 35 has finished printing at time 4
+Student 7 has started printing at time 4
+Student 13 has started printing at time 4
+Student 10 has started printing at time 4
+Student 15 has finished printing at time 4
+Student 50 has arrived at the print station at time 4
+Student 19 has started printing at time 4
+Student 50 has started printing at time 4
+Student 59 has arrived at the print station at time 4
+Student 59 has started printing at time 4
+Student 60 has finished printing at time 4
+Student 8 has started printing at time 4
+Student 67 has arrived at the print station at time 4
+Student 64 has finished printing at time 4
+Student 68 has started printing at time 4
+Student 71 has arrived at the print station at time 4
+Student 79 has arrived at the print station at time 4
+Student 81 has arrived at the print station at time 4
+Student 81 has started printing at time 4
+Student 84 has arrived at the print station at time 4
+Student 84 has started printing at time 4
+Student 85 has arrived at the print station at time 4
+Student 89 has arrived at the print station at time 4
+Student 97 has arrived at the print station at time 4
+Student 98 has arrived at the print station at time 4
+Student 100 has arrived at the print station at time 4
+Student 20 has arrived at the print station at time 5
+Student 21 has arrived at the print station at time 5
+Student 26 has arrived at the print station at time 5
+Student 29 has arrived at the print station at time 5
+Student 32 has arrived at the print station at time 5
+Student 31 has arrived at the print station at time 5
+Student 36 has arrived at the print station at time 5
+Student 38 has arrived at the print station at time 5
+Student 39 has arrived at the print station at time 5
+Student 41 has arrived at the print station at time 5
+Student 42 has arrived at the print station at time 5
+Student 6 has finished printing at time 5
+Student 5 has finished printing at time 5
+Student 26 has started printing at time 5
+Student 46 has arrived at the print station at time 5
+Student 7 has finished printing at time 5
+Student 21 has started printing at time 5
+Student 46 has started printing at time 5
+Student 43 has arrived at the print station at time 5
+Student 43 has started printing at time 5
+Student 13 has finished printing at time 5
+Student 19 has finished printing at time 5
+Student 48 has arrived at the print station at time 5
+Student 10 has finished printing at time 5
+Student 25 has started printing at time 5
+Student 38 has started printing at time 5
+Student 50 has finished printing at time 5
+Student 61 has arrived at the print station at time 5
+Student 42 has started printing at time 5
+Student 23 has started printing at time 5
+Student 59 has finished printing at time 5
+Student 52 has arrived at the print station at time 5
+Student 55 has started printing at time 5
+Student 61 has started printing at time 5
+Student 8 has finished printing at time 5
+Student 27 has started printing at time 5
+Student 16 has started printing at time 5
+Student 68 has finished printing at time 5
+Student 74 has arrived at the print station at time 5
+Student 20 has started printing at time 5
+Student 74 has started printing at time 5
+Student 73 has arrived at the print station at time 5
+Student 81 has finished printing at time 5
+Student 85 has started printing at time 5
+Student 88 has arrived at the print station at time 5
+Student 88 has started printing at time 5
+Student 84 has finished printing at time 5
+Student 90 has arrived at the print station at time 5
+Student 24 has started printing at time 5
+Student 96 has arrived at the print station at time 5
+Student 96 has started printing at time 5
+Student 99 has arrived at the print station at time 5
+Student 99 has started printing at time 5
+Student 4 has arrived at the print station at time 6
+Student 3 has arrived at the print station at time 6
+Student 12 has arrived at the print station at time 6
+Student 14 has arrived at the print station at time 6
+Student 28 has arrived at the print station at time 6
+Student 30 has arrived at the print station at time 6
+Student 34 has arrived at the print station at time 6
+Student 44 has arrived at the print station at time 6
+Student 45 has arrived at the print station at time 6
+Student 45 has started printing at time 6
+Student 26 has finished printing at time 6
+Student 51 has arrived at the print station at time 6
+Student 30 has started printing at time 6
+Staff2 has started reading the entry book at time 6
+Student 54 has arrived at the print station at time 6
+Student 54 has started printing at time 6
+Student 21 has finished printing at time 6
+Student 43 has finished printing at time 6
+Student 29 has started printing at time 6
+Student 58 has arrived at the print station at time 6
+Student 25 has finished printing at time 6
+Student 46 has finished printing at time 6
+Student 47 has started printing at time 6
+Student 38 has finished printing at time 6
+Student 33 has started printing at time 6
+Student 34 has started printing at time 6
+Student 63 has arrived at the print station at time 6
+Student 42 has finished printing at time 6
+Student 55 has finished printing at time 6
+Student 61 has finished printing at time 6
+Student 27 has finished printing at time 6
+Student 65 has started printing at time 6
+Student 63 has started printing at time 6
+Student 23 has finished printing at time 6
+Student 3 has started printing at time 6
+Student 14 has started printing at time 6
+Student 16 has finished printing at time 6
+Student 74 has finished printing at time 6
+Student 80 has arrived at the print station at time 6
+Student 80 has started printing at time 6
+Student 58 has started printing at time 6
+Student 83 has arrived at the print station at time 6
+Student 83 has started printing at time 6
+Student 51 has started printing at time 6
+Student 85 has finished printing at time 6
+Student 62 has arrived at the print station at time 6
+Student 88 has finished printing at time 6
+Student 92 has arrived at the print station at time 6
+Student 92 has started printing at time 6
+Student 4 has started printing at time 6
+Student 78 has started printing at time 6
+Student 62 has started printing at time 6
+Student 31 has started printing at time 6
+Student 96 has finished printing at time 6
+Student 24 has finished printing at time 6
+Student 100 has started printing at time 6
+Student 28 has started printing at time 6
+Student 89 has started printing at time 6
+Student 12 has started printing at time 6
+Student 99 has finished printing at time 6
+Student 20 has finished printing at time 6
+Student 32 has started printing at time 6
+Student 91 has started printing at time 6
+Student 45 has finished printing at time 7
+Student 41 has started printing at time 7
+Staff2 has finished reading the entry book at time 7.No. of submission = 0
+Student 54 has finished printing at time 7
+Student 30 has finished printing at time 7
+Student 66 has started printing at time 7
+Student 29 has finished printing at time 7
+Student 70 has started printing at time 7
+Student 33 has finished printing at time 7
+Student 37 has started printing at time 7
+Student 49 has started printing at time 7
+Student 34 has finished printing at time 7
+Student 47 has finished printing at time 7
+Student 65 has finished printing at time 7
+Student 82 has started printing at time 7
+Student 39 has started printing at time 7
+Student 3 has finished printing at time 7
+Student 14 has finished printing at time 7
+Student 80 has finished printing at time 7
+Student 58 has finished printing at time 7
+Student 86 has started printing at time 7
+Student 72 has started printing at time 7
+Student 67 has started printing at time 7
+Student 83 has finished printing at time 7
+Student 69 has started printing at time 7
+Student 90 has started printing at time 7
+Student 87 has started printing at time 7
+Student 63 has finished printing at time 7
+Student 51 has finished printing at time 7
+Student 71 has started printing at time 7
+Student 92 has finished printing at time 7
+Student 75 has started printing at time 7
+Student 78 has finished printing at time 7
+Student 36 has started printing at time 7
+Student 31 has finished printing at time 7
+Student 94 has started printing at time 7
+Student 100 has finished printing at time 7
+Student 28 has finished printing at time 7
+Student 62 has finished printing at time 7
+Student 12 has finished printing at time 7
+Student 40 has started printing at time 7
+Student 98 has started printing at time 7
+Group 2 has finished printing at time 7
+Group 2 has arrived at binding station at time 7
+Student 89 has finished printing at time 7
+Group 3 has finished printing at time 7
+Student 79 has started printing at time 7
+Group 2 has started binding at time 7
+Group 3 has arrived at binding station at time 7
+Student 48 has started printing at time 7
+Student 91 has finished printing at time 7
+Student 95 has started printing at time 7
+Student 44 has started printing at time 7
+Student 53 has started printing at time 7
+Student 4 has finished printing at time 7
+Student 32 has finished printing at time 7
+Group 3 has started binding at time 7
+Student 52 has started printing at time 7
+Group 1 has finished printing at time 7
+Student 76 has started printing at time 7
+Group 1 has arrived at binding station at time 7
+Staff1 has started reading the entry book at time 8
+Student 41 has finished printing at time 8
+Student 57 has started printing at time 8
+Student 66 has finished printing at time 8
+Student 70 has finished printing at time 8
+Student 37 has finished printing at time 8
+Student 49 has finished printing at time 8
+Student 73 has started printing at time 8
+Student 77 has started printing at time 8
+Student 82 has finished printing at time 8
+Student 39 has finished printing at time 8
+Student 86 has finished printing at time 8
+Student 72 has finished printing at time 8
+Student 67 has finished printing at time 8
+Student 90 has finished printing at time 8
+Student 87 has finished printing at time 8
+Student 69 has finished printing at time 8
+Group 9 has finished printing at time 8
+Student 71 has finished printing at time 8
+Student 93 has started printing at time 8
+Student 75 has finished printing at time 8
+Group 7 has finished printing at time 8
+Student 36 has finished printing at time 8
+Group 9 has arrived at binding station at time 8
+Group 7 has arrived at binding station at time 8
+Student 94 has finished printing at time 8
+Student 40 has finished printing at time 8
+Student 98 has finished printing at time 8
+Group 4 has finished printing at time 8
+Student 79 has finished printing at time 8
+Group 2 has finished binding at time 8
+Group 4 has arrived at binding station at time 8
+Group 1 has started binding at time 8
+Group 2 has arrived at entry-book station at time 8
+Student 44 has finished printing at time 8
+Group 3 has finished binding at time 8
+Student 52 has finished printing at time 8
+Student 76 has finished printing at time 8
+Student 95 has finished printing at time 8
+Student 48 has finished printing at time 8
+Group 3 has arrived at entry-book station at time 8
+Group 5 has finished printing at time 8
+Group 5 has arrived at binding station at time 8
+Group 9 has started binding at time 8
+Student 53 has finished printing at time 8
+Student 97 has started printing at time 8
+Staff1 has finished reading the entry book at time 9.No. of submission = 0
+Group 2 has started submitting at time 9
+Student 57 has finished printing at time 9
+Group 6 has finished printing at time 9
+Group 6 has arrived at binding station at time 9
+Student 73 has finished printing at time 9
+Student 77 has finished printing at time 9
+Group 8 has finished printing at time 9
+Group 8 has arrived at binding station at time 9
+Student 93 has finished printing at time 9
+Group 1 has finished binding at time 9
+Group 1 has arrived at entry-book station at time 9
+Group 7 has started binding at time 9
+Group 9 has finished binding at time 9
+Group 9 has arrived at entry-book station at time 9
+Group 4 has started binding at time 9
+Student 97 has finished printing at time 9
+Group 10 has finished printing at time 9
+Group 10 has arrived at binding station at time 9
+Group 2 has finished submitting at time 10
+Group 3 has started submitting at time 10
+Group 7 has finished binding at time 10
+Group 7 has arrived at entry-book station at time 10
+Group 5 has started binding at time 10
+Group 4 has finished binding at time 10
+Group 4 has arrived at entry-book station at time 10
+Group 6 has started binding at time 10
+Group 3 has finished submitting at time 11
+Group 1 has started submitting at time 11
+Group 5 has finished binding at time 11
+Group 5 has arrived at entry-book station at time 11
+Group 8 has started binding at time 11
+Group 6 has finished binding at time 11
+Group 6 has arrived at entry-book station at time 11
+Group 10 has started binding at time 11
+Group 1 has finished submitting at time 12
+Group 9 has started submitting at time 12
+Group 8 has finished binding at time 12
+Group 8 has arrived at entry-book station at time 12
+Group 10 has finished binding at time 12
+Group 10 has arrived at entry-book station at time 12
+Group 9 has finished submitting at time 13
+Group 7 has started submitting at time 13
+Group 7 has finished submitting at time 14
+Group 4 has started submitting at time 14
+Group 4 has finished submitting at time 15
+Group 5 has started submitting at time 15
+Group 5 has finished submitting at time 16
+Group 6 has started submitting at time 16
+Group 6 has finished submitting at time 17
+Staff2 has started reading the entry book at time 17
+Staff1 has started reading the entry book at time 17
+Staff2 has finished reading the entry book at time 18.No. of submission = 8
+Staff1 has finished reading the entry book at time 18.No. of submission = 8
+Group 8 has started submitting at time 18
+Group 8 has finished submitting at time 19
+Group 10 has started submitting at time 19
+Group 10 has finished submitting at time 20
+Staff2 has started reading the entry book at time 21
+Staff2 has finished reading the entry book at time 22.No. of submission = 10
+Staff1 has started reading the entry book at time 23
+Staff1 has finished reading the entry book at time 24.No. of submission = 10
 
-Script done on 2023-08-05 20:49:32+06:00 [COMMAND_EXIT_CODE="0"]
+Script done on 2023-08-07 12:31:21+06:00 [COMMAND_EXIT_CODE="0"]
