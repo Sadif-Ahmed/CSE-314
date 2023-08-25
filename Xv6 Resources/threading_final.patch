@@ -1,5 +1,5 @@
 diff --git a/Makefile b/Makefile
-index 39a99d7..46696eb 100644
+index 39a99d7..f5d6d0b 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -87,7 +87,7 @@ $U/initcode: $U/initcode.S
@@ -11,11 +11,12 @@ index 39a99d7..46696eb 100644
  
  _%: %.o $(ULIB)
  	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
-@@ -132,6 +132,7 @@ UPROGS=\
+@@ -132,6 +132,8 @@ UPROGS=\
  	$U/_grind\
  	$U/_wc\
  	$U/_zombie\
 +	$U/_thread\
++	$U/_producer_consumer\
  
  fs.img: mkfs/mkfs README $(UPROGS)
  	mkfs/mkfs fs.img README $(UPROGS)
@@ -679,7 +680,7 @@ index 0000000..4847454
 \ No newline at end of file
 diff --git a/user/counting_semaphore.c b/user/counting_semaphore.c
 new file mode 100644
-index 0000000..c4b0fdb
+index 0000000..4a63b74
 --- /dev/null
 +++ b/user/counting_semaphore.c
 @@ -0,0 +1,35 @@
@@ -690,14 +691,14 @@ index 0000000..c4b0fdb
 +#include "thread_mutex.h"
 +#include "counting_semaphore.h"
 +
-+int sem_init(struct semaphore *sem,int value)
++int thread_sem_init(struct counting_semaphore *sem,int value)
 +{
 +    sem->count=value;
 +    thread_mutex_init(&sem->mtx);
 +    cond_init(&sem->cv);
 +    return 0;
 +}
-+int sem_post(struct semaphore *sem)
++int thread_sem_post(struct counting_semaphore *sem)
 +{
 +    thread_mutex_lock(&sem->mtx);
 +    sem->count++;
@@ -708,7 +709,7 @@ index 0000000..c4b0fdb
 +    thread_mutex_unlock(&sem->mtx);
 +    return 0;
 +}
-+int sem_wait(struct semaphore *sem)
++int thread_sem_wait(struct counting_semaphore *sem)
 +{
 +    thread_mutex_lock(&sem->mtx);
 +    while (sem->count == 0) {
@@ -720,18 +721,170 @@ index 0000000..c4b0fdb
 +}
 diff --git a/user/counting_semaphore.h b/user/counting_semaphore.h
 new file mode 100644
-index 0000000..14b080f
+index 0000000..e466a5f
 --- /dev/null
 +++ b/user/counting_semaphore.h
-@@ -0,0 +1,7 @@
-+
-+struct semaphore
+@@ -0,0 +1,6 @@
++struct counting_semaphore
 +{
 +    int count;
 +    struct thread_mutex mtx;
 +    struct condvar cv;
 +};
 \ No newline at end of file
+diff --git a/user/producer_consumer.c b/user/producer_consumer.c
+new file mode 100644
+index 0000000..d630bf4
+--- /dev/null
++++ b/user/producer_consumer.c
+@@ -0,0 +1,147 @@
++#include "kernel/types.h"
++#include "kernel/stat.h"
++#include "user/user.h"
++#include "thread_mutex.h"
++#include "thread_spinlock.h"
++#include "conditional_variable.h"
++#include "counting_semaphore.h"
++
++struct queue{
++	int arr[16];
++	int front;
++	int rear;
++	int size;
++	
++};
++void queue_init(struct queue* q)
++{
++    q->front = 0;
++	q->rear = 0;
++	q->size = 0;
++
++}
++void queue_push(struct queue* q,int x)
++{
++		q->arr[q->rear] = x;
++		q->rear = (q->rear+1)%16;
++		q->size++;
++}
++int queue_front(struct queue* q)
++{
++		if(q->size==0)
++			return -1;
++		return q->arr[q->front];
++}
++void queue_pop(struct queue* q)
++{
++		q->front = (q->front+1)%16;
++		q->size--;
++}
++
++struct queue q;
++// a mutex object lock 
++struct thread_mutex mtx;
++// a semaphore object empty
++struct counting_semaphore empty;
++// a semaphore object full
++struct counting_semaphore full;
++
++struct thread_mutex print_lock;
++
++void init_semaphore()
++{
++	// initialize mutex lock
++    thread_mutex_init(&mtx);
++	// initialize semaphore empty with 5
++    thread_sem_init(&empty,5);
++	// initialize semaphore full with 0
++    thread_sem_init(&full,0);
++
++    thread_mutex_init(&print_lock);
++
++}
++
++void  ProducerFunc(void * arg)
++{	
++    thread_mutex_lock(&print_lock);
++	printf("%s\n",(char*)arg);
++    thread_mutex_unlock(&print_lock);
++	int i;
++	for(i=1;i<=10;i++)
++	{
++		// wait for semphore empty
++        thread_sem_wait(&empty);
++
++		// wait for mutex lock
++        thread_mutex_lock(&mtx);
++		
++		sleep(1);	
++		queue_push(&q,i);
++        thread_mutex_lock(&print_lock);
++		printf("producer produced item %d\n",i);
++		thread_mutex_unlock(&print_lock);
++		// unlock mutex lock	
++        thread_mutex_unlock(&mtx);
++		// post semaphore full
++        thread_sem_post(&full);
++	}
++    thread_exit();
++    return;
++}
++
++void  ConsumerFunc(void * arg)
++{
++    thread_mutex_lock(&print_lock);
++	printf("%s\n",(char*)arg);
++    thread_mutex_unlock(&print_lock);
++	int i;
++	for(i=1;i<=10;i++)
++	{	
++		// wait for semphore full
++        thread_sem_wait(&full);
++		// wait for mutex lock
++        thread_mutex_lock(&mtx);
++ 		
++			
++		sleep(1);
++		int item = queue_front(&q);
++		queue_pop(&q);
++        thread_mutex_lock(&print_lock);
++		printf("consumer consumed item %d\n",item);	
++        thread_mutex_unlock(&print_lock);
++
++
++		// unlock mutex lock
++        thread_mutex_unlock(&mtx);
++		// post semaphore empty	
++        thread_sem_post(&empty);	
++	}
++    thread_exit();
++    return;
++}
++
++int main(void)
++{	
++	
++	init_semaphore();
++	
++	char * message1 = "i am producer";
++	char * message2 = "i am consumer";
++
++
++	void *s1, *s2;
++  	int thread1, thread2, r1, r2;
++
++  	s1 = malloc(4096);
++  	s2 = malloc(4096);
++
++  	thread1 = thread_create(ProducerFunc, (void*)message1, s1);
++  	thread2 = thread_create(ConsumerFunc, (void*)message2, s2); 
++
++  	r1 = thread_join(thread1);
++  	r2 = thread_join(thread2);	
++
++	printf("Threads finished: (%d):%d, (%d):%d\n",
++      thread1, r1, thread2, r2);
++	exit(0);
++}
 diff --git a/user/thread.c b/user/thread.c
 new file mode 100644
 index 0000000..bde8ad0
@@ -941,7 +1094,7 @@ index 0000000..8210118
 +};
 \ No newline at end of file
 diff --git a/user/user.h b/user/user.h
-index 4d398d5..f6608bb 100644
+index 4d398d5..4775228 100644
 --- a/user/user.h
 +++ b/user/user.h
 @@ -1,4 +1,8 @@
@@ -949,7 +1102,7 @@ index 4d398d5..f6608bb 100644
 +struct thread_spinlock;
 +struct thread_mutex;
 +struct condvar;
-+struct semaphore;
++struct counting_semaphore;
  
  // system calls
  int fork(void);
@@ -988,9 +1141,9 @@ index 4d398d5..f6608bb 100644
 +void cond_broadcast(struct condvar*);
 +
 +// counting_semaphore.c
-+int sem_init(struct semaphore*,int);
-+int sem_post(struct semaphore*);
-+int sem_wait(struct semaphore*);
++int thread_sem_init(struct counting_semaphore*,int);
++int thread_sem_post(struct counting_semaphore*);
++int thread_sem_wait(struct counting_semaphore*);
 \ No newline at end of file
 diff --git a/user/usys.pl b/user/usys.pl
 index 01e426e..c6c0656 100755
