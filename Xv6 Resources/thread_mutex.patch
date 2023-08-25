@@ -1,7 +1,16 @@
 diff --git a/Makefile b/Makefile
-index 39a99d7..f7e4157 100644
+index 39a99d7..9e60f63 100644
 --- a/Makefile
 +++ b/Makefile
+@@ -87,7 +87,7 @@ $U/initcode: $U/initcode.S
+ tags: $(OBJS) _init
+ 	etags *.S *.c
+ 
+-ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
++ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/thread_spinlock.o $U/thread_mutex.o
+ 
+ _%: %.o $(ULIB)
+ 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
 @@ -132,6 +132,7 @@ UPROGS=\
  	$U/_grind\
  	$U/_wc\
@@ -531,20 +540,24 @@ index 9f69783..f34eeeb 100644
  void
 diff --git a/user/thread.c b/user/thread.c
 new file mode 100644
-index 0000000..f2fcf6d
+index 0000000..9a71038
 --- /dev/null
 +++ b/user/thread.c
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,82 @@
 +#include "kernel/types.h"
 +#include "kernel/stat.h"
 +#include "user/user.h"
-+
++#include "thread_spinlock.h"
++#include "thread_mutex.h"
 +struct balance {
 +    char name[32];
 +    int amount;
 +};
 +
 +volatile int total_balance = 0;
++struct thread_spinlock lock;
++struct thread_mutex mlock;
++struct thread_mutex printlock;
 +
 +volatile unsigned int delay (unsigned int d) {
 +   unsigned int i;
@@ -560,23 +573,29 @@ index 0000000..f2fcf6d
 +    int old;
 +
 +    struct balance *b = (struct balance*) arg;
++    thread_mutex_lock(&printlock);
 +    printf( "Starting do_work: s:%s\n", b->name);
-+
++    thread_mutex_unlock(&printlock);
 +    for (i = 0; i < b->amount; i++) {
 +        // lock and mlock will be implemented by you.
-+         // thread_spin_lock(&lock);
-+         // thread_mutex_lock(&mlock);
++        thread_spin_lock(&lock);
++        thread_mutex_lock(&mlock);
 +         old = total_balance;
 +         delay(100000);
-+	 // if(old != total_balance)  printf("we will miss an update. old: %d total_balance: %d\n", old, total_balance);
++	     if(old != total_balance) 
++         {
++            thread_mutex_lock(&printlock);
++            printf("we will miss an update. old: %d total_balance: %d\n", old, total_balance);
++            thread_mutex_unlock(&printlock);
++         } 
 +         total_balance = old + 1;
-+         //thread_spin_unlock(&lock);
-+         // thread_mutex_lock(&mlock);
++         thread_mutex_unlock(&mlock);
++         thread_spin_unlock(&lock);
 +
 +    }
-+
++    thread_mutex_lock(&printlock);
 +    printf( "Done s:%x\n", b->name);
-+
++    thread_mutex_unlock(&printlock);
 +    thread_exit();
 +    return;
 +}
@@ -585,6 +604,10 @@ index 0000000..f2fcf6d
 +
 +  struct balance b1 = {"b1", 3200};
 +  struct balance b2 = {"b2", 2800};
++
++  thread_spin_init(&lock);
++  thread_mutex_init(&mlock);
++  thread_mutex_init(&printlock);
 +
 +  void *s1, *s2;
 +  int thread1, thread2, r1, r2;
@@ -604,17 +627,139 @@ index 0000000..f2fcf6d
 +  exit(0);
 +}
 \ No newline at end of file
+diff --git a/user/thread_mutex.c b/user/thread_mutex.c
+new file mode 100644
+index 0000000..0116e9d
+--- /dev/null
++++ b/user/thread_mutex.c
+@@ -0,0 +1,42 @@
++#include "kernel/types.h"
++#include "kernel/stat.h"
++#include "user/user.h"
++#include "thread_mutex.h"
++
++void thread_mutex_init(struct thread_mutex *mtx)
++{
++    mtx->mutex_state=0;
++    mtx->owner_id=0;
++}
++void thread_mutex_lock(struct thread_mutex *mtx)
++{
++    int pid = getpid();
++    if(pid == mtx->owner_id)
++    {
++        printf("error:trying to lock owned mutex\n");
++        exit(-1);
++    }
++    while(__sync_lock_test_and_set(&mtx->mutex_state, 1) != 0)
++    {
++        thread_yield();
++    }
++
++    mtx->owner_id = pid;
++
++    __sync_synchronize();    
++}
++void thread_mutex_unlock(struct thread_mutex *mtx)
++{
++    int pid = getpid();
++
++    if(mtx->owner_id != pid)
++    {
++        printf("error:trying to unlock unowned mutex\n");
++        exit(-1);
++    }
++
++    mtx->owner_id = 0;
++
++    __sync_synchronize();
++    __sync_lock_release(&mtx->mutex_state);
++}
+diff --git a/user/thread_mutex.h b/user/thread_mutex.h
+new file mode 100644
+index 0000000..4c9b27a
+--- /dev/null
++++ b/user/thread_mutex.h
+@@ -0,0 +1,5 @@
++struct thread_mutex
++{
++    int mutex_state;
++    int owner_id;
++};
+\ No newline at end of file
+diff --git a/user/thread_spinlock.c b/user/thread_spinlock.c
+new file mode 100644
+index 0000000..ececbe9
+--- /dev/null
++++ b/user/thread_spinlock.c
+@@ -0,0 +1,43 @@
++#include "kernel/types.h"
++#include "kernel/stat.h"
++#include "user/user.h"
++#include "thread_spinlock.h"
++
++
++void thread_spin_init(struct thread_spinlock *lk)
++{
++    lk->locked_state=0;
++    lk->owner_id=0;
++}
++
++void thread_spin_lock(struct thread_spinlock *lk)
++{
++    int pid = getpid();
++
++    if(lk->owner_id == pid)
++    {
++        printf("error: attempt to lock owned spinlock\n");
++        exit(-1);
++    }
++
++    while(__sync_lock_test_and_set(&lk->locked_state, 1) != 0);
++    lk->owner_id=pid;
++    __sync_synchronize();
++
++}
++void thread_spin_unlock(struct thread_spinlock *lk)
++{
++    int pid = getpid();  
++    if(lk->owner_id != pid)
++    {
++        printf("error: attempt to unlock spinlock not owned\n");
++        exit(-1);
++    }
++
++    lk->owner_id = 0;
++
++    __sync_synchronize();
++    __sync_lock_release(&lk->locked_state);
++}
++
++
+diff --git a/user/thread_spinlock.h b/user/thread_spinlock.h
+new file mode 100644
+index 0000000..8210118
+--- /dev/null
++++ b/user/thread_spinlock.h
+@@ -0,0 +1,5 @@
++struct thread_spinlock
++{
++    int locked_state;
++    int owner_id;
++};
+\ No newline at end of file
 diff --git a/user/user.h b/user/user.h
-index 4d398d5..57d08dc 100644
+index 4d398d5..bec4f08 100644
 --- a/user/user.h
 +++ b/user/user.h
-@@ -1,4 +1,5 @@
+@@ -1,4 +1,6 @@
  struct stat;
-+struct queue;
++struct thread_spinlock;
++struct thread_mutex;
  
  // system calls
  int fork(void);
-@@ -22,6 +23,10 @@ int getpid(void);
+@@ -22,6 +24,10 @@ int getpid(void);
  char* sbrk(int);
  int sleep(int);
  int uptime(void);
@@ -625,6 +770,21 @@ index 4d398d5..57d08dc 100644
  
  // ulib.c
  int stat(const char*, struct stat*);
+@@ -39,3 +45,13 @@ void free(void*);
+ int atoi(const char*);
+ int memcmp(const void *, const void *, uint);
+ void *memcpy(void *, const void *, uint);
++
++// thread_mutex.c
++void thread_mutex_init(struct thread_mutex*);
++void thread_mutex_lock(struct thread_mutex*);
++void thread_mutex_unlock(struct thread_mutex*);
++
++// thread_spinlock.c
++void thread_spin_init(struct thread_spinlock*);
++void thread_spin_lock(struct thread_spinlock*);
++void thread_spin_unlock(struct thread_spinlock*);
+\ No newline at end of file
 diff --git a/user/usys.pl b/user/usys.pl
 index 01e426e..6b2cff0 100755
 --- a/user/usys.pl
