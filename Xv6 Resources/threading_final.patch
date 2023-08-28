@@ -46,14 +46,14 @@ index a3c962b..8af79e7 100644
  // plic.c
  void            plicinit(void);
 diff --git a/kernel/proc.c b/kernel/proc.c
-index 959b778..2b5d7a8 100644
+index 959b778..807a652 100644
 --- a/kernel/proc.c
 +++ b/kernel/proc.c
 @@ -15,6 +15,11 @@ struct proc *initproc;
  int nextpid = 1;
  struct spinlock pid_lock;
  
-+//Memory id initialisation
++//Initializing memory id
 +int memid=1;
 +struct spinlock memid_lock;
 +
@@ -61,7 +61,15 @@ index 959b778..2b5d7a8 100644
  extern void forkret(void);
  static void freeproc(struct proc *p);
  
-@@ -51,8 +56,10 @@ procinit(void)
+@@ -44,6 +49,7 @@ proc_mapstacks(pagetable_t kpgtbl)
+ }
+ 
+ // initialize the proc table.
++// initializing memlock
+ void
+ procinit(void)
+ {
+@@ -51,8 +57,10 @@ procinit(void)
    
    initlock(&pid_lock, "nextpid");
    initlock(&wait_lock, "wait_lock");
@@ -72,11 +80,12 @@ index 959b778..2b5d7a8 100644
        p->state = UNUSED;
        p->kstack = KSTACK((int) (p - proc));
    }
-@@ -101,7 +108,16 @@ allocpid()
+@@ -101,7 +109,17 @@ allocpid()
  
    return pid;
  }
 -
++//allocating memory id similar to allocpid
 +int
 +allocmemid()
 +{
@@ -90,12 +99,15 @@ index 959b778..2b5d7a8 100644
  // Look in the process table for an UNUSED proc.
  // If found, initialize state required to run in the kernel,
  // and return with p->lock held.
-@@ -159,7 +175,17 @@ freeproc(struct proc *p)
+@@ -159,7 +177,20 @@ freeproc(struct proc *p)
      kfree((void*)p->trapframe);
    p->trapframe = 0;
    if(p->pagetable)
 -    proc_freepagetable(p->pagetable, p->sz);
 +  {
++    //if p this a thread then the physical address it is pointing to is not deleted
++    // because the process and other threads of the process might still be using that.
++    //so proc_freepagetable is edited to thread_freepagetable
 +    if(p->isthread)
 +    {
 +      thread_freepagetable(p->pagetable,p->sz);
@@ -109,7 +121,7 @@ index 959b778..2b5d7a8 100644
    p->pagetable = 0;
    p->sz = 0;
    p->pid = 0;
-@@ -169,6 +195,9 @@ freeproc(struct proc *p)
+@@ -169,6 +200,9 @@ freeproc(struct proc *p)
    p->killed = 0;
    p->xstate = 0;
    p->state = UNUSED;
@@ -119,10 +131,12 @@ index 959b778..2b5d7a8 100644
  }
  
  // Create a user page table for a given process, with no user memory,
-@@ -215,6 +244,14 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
+@@ -214,6 +248,15 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
+   uvmunmap(pagetable, TRAPFRAME, 1, 0);
    uvmfree(pagetable, sz);
  }
- 
++//similar to procfreepagetable but just does not call uvmfree and 
++//calls its edited version tuvmfree which does not reset the physical address
 +void
 +thread_freepagetable(pagetable_t pagetable,uint64 sz)
 +{
@@ -130,15 +144,15 @@ index 959b778..2b5d7a8 100644
 +  uvmunmap(pagetable, TRAPFRAME, 1, 0);
 +  tuvmfree(pagetable, sz);
 +}
-+
+ 
  // a user program that calls exec("/init")
  // assembled from ../user/initcode.S
- // od -t xC ../user/initcode
-@@ -261,16 +298,51 @@ growproc(int n)
+@@ -261,16 +304,58 @@ growproc(int n)
  {
    uint64 sz;
    struct proc *p = myproc();
 -
++  //acquiring process lock and shared memory lock
 +  acquire(&p->lock);
 +  acquire(p->memlock_parent);
    sz = p->sz;
@@ -149,6 +163,8 @@ index 959b778..2b5d7a8 100644
      }
 +    else
 +    {
++      //looking for threads sharing same address space
++      //and growing them too
 +      struct proc *tempproc;
 +      for(tempproc = proc; tempproc < &proc[NPROC]; tempproc++)
 +       {
@@ -167,6 +183,9 @@ index 959b778..2b5d7a8 100644
 +    }
    } else if(n < 0){
      sz = uvmdealloc(p->pagetable, sz, sz + n);
++    //looking for threads sharing same address space
++    //and shrinking them too
++
 +    struct proc *pp;
 +    for(pp = proc; pp < &proc[NPROC]; pp++){
 +    if(pp!=p)
@@ -182,28 +201,32 @@ index 959b778..2b5d7a8 100644
 +
    }
    p->sz = sz;
++  //releasing process lock and memlock
 +  release(p->memlock_parent);
 +  release(&p->lock);
    return 0;
  }
  
-@@ -288,6 +360,9 @@ fork(void)
+@@ -287,6 +372,9 @@ fork(void)
+   if((np = allocproc()) == 0){
      return -1;
    }
- 
++  //initializing new process memoryid and shared memory lock
 +  np->memid = allocmemid();
 +  np->memlock_parent = &np->memlock;
-+
+ 
    // Copy user memory from parent to child.
    if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
-     freeproc(np);
-@@ -348,6 +423,56 @@ exit(int status)
+@@ -347,6 +435,62 @@ void
+ exit(int status)
  {
    struct proc *p = myproc();
- 
++  //Added mechanism for waiting till all child threads exit of a process/thread
++  //Similar to wait()
 +  if(!p->isthread)
 +  {
 +    acquire(&wait_lock);
++    //Infiinite loop looking for kids and taking care of them
 +    for(;;)
 +    {
 +      uint64 kidcount=0;
@@ -212,8 +235,10 @@ index 959b778..2b5d7a8 100644
 +      {
 +        if(pp->isthread && pp->memid == p->memid)
 +        {
++          //acquiring shared memorylock
 +          acquire(p->memlock_parent);
 +          acquire(&pp->lock);
++          //freeing sleeping finished child
 +          if(pp->state == ZOMBIE)
 +          {
 +            freeproc(pp);
@@ -221,6 +246,7 @@ index 959b778..2b5d7a8 100644
 +          }
 +          else
 +          {
++            //forcefully waking sleeping child
 +            if(!pp->killed)
 +            {
 +              int pid = pp->pid;
@@ -237,11 +263,12 @@ index 959b778..2b5d7a8 100644
 +        }
 +
 +      }
++      //No kids left
 +      if(kidcount == 0)
 +      {
 +        break;
 +      }
-+
++      //Wait for a child thread to exit
 +      sleep(p,&wait_lock);
 +    }
 +
@@ -250,15 +277,15 @@ index 959b778..2b5d7a8 100644
 +    }
 +
 +
-+
+ 
    if(p == initproc)
      panic("init exiting");
- 
-@@ -371,7 +496,14 @@ exit(int status)
+@@ -371,7 +515,15 @@ exit(int status)
    reparent(p);
  
    // Parent might be sleeping in wait().
 -  wakeup(p->parent);
++  // if thread then wake the origing process that the thred is derived from 
 +  if(p->isthread)
 +  {
 +    wakeup(p->origin_proc);
@@ -270,16 +297,17 @@ index 959b778..2b5d7a8 100644
    
    acquire(&p->lock);
  
-@@ -400,7 +532,7 @@ wait(uint64 addr)
+@@ -400,7 +552,8 @@ wait(uint64 addr)
      // Scan through table looking for exited children.
      havekids = 0;
      for(pp = proc; pp < &proc[NPROC]; pp++){
 -      if(pp->parent == p){
++      //excluding threads from process search
 +      if(pp->parent == p && !pp->isthread){
          // make sure the child isn't still in exit() or swtch().
          acquire(&pp->lock);
  
-@@ -515,7 +647,6 @@ void
+@@ -515,7 +668,6 @@ void
  forkret(void)
  {
    static int first = 1;
@@ -287,10 +315,11 @@ index 959b778..2b5d7a8 100644
    // Still holding p->lock from scheduler.
    release(&myproc()->lock);
  
-@@ -681,3 +812,156 @@ procdump(void)
+@@ -681,3 +833,164 @@ procdump(void)
      printf("\n");
    }
  }
++//Creating threads similar to fork()
 +int thread_make(void (* fcn)(void *), void *arg, void *stack)
 +{
 +   int i, pid;
@@ -298,15 +327,15 @@ index 959b778..2b5d7a8 100644
 +  struct proc *p = myproc();
 +
 +  // Allocate process.
-+  // acquire(p->memlock_used);
 +  if((np = allocproc()) == 0){
 +    release(p->memlock_parent);
 +    return -1;
 +  }
-+
++  //Passing down memory id and memlock from parent to child
 +  np->memid = p->memid;
 +  np->memlock_parent = p->memlock_parent;
-+  // Mirror user memory from parent to child.
++  // tvmcopy copies  the user memory from parent to child.
++  // maps the virtual addresses to the same physical pagetable address
 +  tuvmcopy(p->pagetable, np->pagetable, 0, p->sz);
 +
 +  np->sz = p->sz;
@@ -317,10 +346,10 @@ index 959b778..2b5d7a8 100644
 +  // Set argument
 +  np->trapframe->a0 = (uint64)arg;
 +
-+  // // Set stack pointer
++  // Set stack pointer and fake return address
 +  np->trapframe->sp = (uint64)stack + PGSIZE - sizeof(uint32) - 1;
 +  uint32 return_address = 0xffffffff;
-+
++  // Returning the fake return address to the user space using copyout
 +  if(copyout(np->pagetable, (uint64)stack + PGSIZE - sizeof(uint32), (char *)&return_address, sizeof(uint32))){
 +    freeproc(np);
 +    release(&np->lock);
@@ -328,12 +357,12 @@ index 959b778..2b5d7a8 100644
 +    return -1;
 +  }
 +
-+  // // Set thread routine
++  //Setting thread function
 +  np->trapframe->epc = (uint64)fcn;
 +
-+  // Is a thread
++  // Thread flag set
 +  np->isthread = 1;
-+
++  //Passing down origin of thread through the link
 +  if(p->isthread){
 +    np->origin_proc = p->origin_proc;
 +  }else{
@@ -362,6 +391,7 @@ index 959b778..2b5d7a8 100644
 +
 +  return pid;
 +}
++//Thread join implementation similar to wait excluding the child count
 +int thread_sync(int thread_id)
 +{
 +  int wait, pid;
@@ -375,8 +405,10 @@ index 959b778..2b5d7a8 100644
 +    for(struct proc *pp = proc; pp < &proc[NPROC]; pp++){
 +      acquire(p->memlock_parent);
 +      acquire(&pp->lock);
++      //found thread
 +      if(pp->isthread && pp->pid == thread_id){
 +        wait = 1;
++        // make sure the child isn't still in exit() or swtch().
 +        if(pp->state == ZOMBIE){
 +          // Found one.
 +          pid = pp->pid;
@@ -401,39 +433,43 @@ index 959b778..2b5d7a8 100644
 +    }
 +
 +    // Wait for a child to exit.
-+    sleep(p, &wait_lock);  //DOC: wait-sleep
++    sleep(p, &wait_lock); 
 +  }
 +}
-+int thread_sleep(uint64 va, int value)
++//Thread sleep similar to sleep()
++int thread_sleep(uint64 virt_addr, int val)
 +{
 +  struct proc *p = myproc();
 +
 +  acquire(p->memlock_parent);
-+
-+  uint64 va0 = PGROUNDDOWN(va);
-+  uint64 pa = walkaddr(p->pagetable, va0) + va - va0;
-+
-+  if(__sync_bool_compare_and_swap((int *)pa, value, value))
++  //calculating physical adddress from virtual address
++  uint64 stripped_virt_addr = PGROUNDDOWN(virt_addr);
++  uint64 phy_addr = walkaddr(p->pagetable, stripped_virt_addr) + virt_addr -  stripped_virt_addr;
++  //Sleep if value matches page table value
++  if(__sync_bool_compare_and_swap((int *)phy_addr, val, val))
 +  {
-+    sleep((void *)pa, p->memlock_parent);
++    sleep((void *)phy_addr, p->memlock_parent);
 +  }
 +
 +  release(p->memlock_parent);
 +
 +  return 0;
 +}
-+int thread_wake(uint64 va, uint64 count)
++//Thread wake similar to wakeup()
++int thread_wake(uint64 virt_addr, uint64 count)
 +{
 +  struct proc *p = myproc();
 +
 +  acquire(p->memlock_parent);
 +
-+  uint64 va0 = PGROUNDDOWN(va);
-+  uint64 pa = walkaddr(p->pagetable, va0) + va - va0;
++  uint64 stripped_virt_addr = PGROUNDDOWN(virt_addr);
++  uint64 phy_addr = walkaddr(p->pagetable, stripped_virt_addr) + virt_addr - stripped_virt_addr;
 +  struct proc * pp;
++  //looking for sleeping threads
 +  for(pp = proc; count > 0 && pp < &proc[NPROC]; pp++){
 +    acquire(&pp->lock);
-+    if(pp->chan == (void *)pa && pp->state == SLEEPING){
++    //make the thread runnable
++    if(pp->chan == (void *)phy_addr && pp->state == SLEEPING){
 +      pp->state = RUNNABLE;
 +      --count;
 +    }
@@ -446,7 +482,7 @@ index 959b778..2b5d7a8 100644
 +}
 \ No newline at end of file
 diff --git a/kernel/proc.h b/kernel/proc.h
-index d021857..666b799 100644
+index d021857..f8ac550 100644
 --- a/kernel/proc.h
 +++ b/kernel/proc.h
 @@ -104,4 +104,9 @@ struct proc {
@@ -454,16 +490,16 @@ index d021857..666b799 100644
    struct inode *cwd;           // Current directory
    char name[16];               // Process name (debugging)
 +  struct spinlock memlock;     //memory lock of process
-+  struct spinlock *memlock_parent;//memory lock of parent process
++  struct spinlock *memlock_parent;//shared memory lock between a process and its threads
 +  uint64 memid;                 //process memory id
 +  uint64 isthread;              // value set to 1 if thread
 +  struct proc *origin_proc;      //Pointer to origin process
  };
 diff --git a/kernel/syscall.c b/kernel/syscall.c
-index ed65409..fcf0dbd 100644
+index ed65409..e7e7632 100644
 --- a/kernel/syscall.c
 +++ b/kernel/syscall.c
-@@ -101,6 +101,12 @@ extern uint64 sys_unlink(void);
+@@ -101,31 +101,43 @@ extern uint64 sys_unlink(void);
  extern uint64 sys_link(void);
  extern uint64 sys_mkdir(void);
  extern uint64 sys_close(void);
@@ -476,35 +512,114 @@ index ed65409..fcf0dbd 100644
  
  // An array mapping syscall numbers from syscall.h
  // to the function that handles the system call.
-@@ -126,6 +132,12 @@ static uint64 (*syscalls[])(void) = {
- [SYS_link]    sys_link,
- [SYS_mkdir]   sys_mkdir,
- [SYS_close]   sys_close,
+ static uint64 (*syscalls[])(void) = {
+-[SYS_fork]    sys_fork,
+-[SYS_exit]    sys_exit,
+-[SYS_wait]    sys_wait,
+-[SYS_pipe]    sys_pipe,
+-[SYS_read]    sys_read,
+-[SYS_kill]    sys_kill,
+-[SYS_exec]    sys_exec,
+-[SYS_fstat]   sys_fstat,
+-[SYS_chdir]   sys_chdir,
+-[SYS_dup]     sys_dup,
+-[SYS_getpid]  sys_getpid,
+-[SYS_sbrk]    sys_sbrk,
+-[SYS_sleep]   sys_sleep,
+-[SYS_uptime]  sys_uptime,
+-[SYS_open]    sys_open,
+-[SYS_write]   sys_write,
+-[SYS_mknod]   sys_mknod,
+-[SYS_unlink]  sys_unlink,
+-[SYS_link]    sys_link,
+-[SYS_mkdir]   sys_mkdir,
+-[SYS_close]   sys_close,
++[SYS_fork]          sys_fork,
++[SYS_exit]          sys_exit,
++[SYS_wait]          sys_wait,
++[SYS_pipe]          sys_pipe,
++[SYS_read]          sys_read,
++[SYS_kill]          sys_kill,
++[SYS_exec]          sys_exec,
++[SYS_fstat]         sys_fstat,
++[SYS_chdir]         sys_chdir,
++[SYS_dup]           sys_dup,
++[SYS_getpid]        sys_getpid,
++[SYS_sbrk]          sys_sbrk,
++[SYS_sleep]         sys_sleep,
++[SYS_uptime]        sys_uptime,
++[SYS_open]          sys_open,
++[SYS_write]         sys_write,
++[SYS_mknod]         sys_mknod,
++[SYS_unlink]        sys_unlink,
++[SYS_link]          sys_link,
++[SYS_mkdir]         sys_mkdir,
++[SYS_close]         sys_close,
 +[SYS_thread_create] sys_thread_create,
-+[SYS_thread_join] sys_thread_join,
-+[SYS_thread_exit] sys_thread_exit,
-+[SYS_thread_yield] sys_thread_yield,
-+[SYS_thread_sleep] sys_thread_sleep,
-+[SYS_thread_wake] sys_thread_wake,
++[SYS_thread_join]   sys_thread_join,
++[SYS_thread_exit]   sys_thread_exit,
++[SYS_thread_yield]  sys_thread_yield,
++[SYS_thread_sleep]  sys_thread_sleep,
++[SYS_thread_wake]   sys_thread_wake,
  };
  
  void
 diff --git a/kernel/syscall.h b/kernel/syscall.h
-index bc5f356..c984462 100644
+index bc5f356..1488b69 100644
 --- a/kernel/syscall.h
 +++ b/kernel/syscall.h
-@@ -20,3 +20,9 @@
- #define SYS_link   19
- #define SYS_mkdir  20
- #define SYS_close  21
+@@ -1,22 +1,28 @@
+ // System call numbers
+-#define SYS_fork    1
+-#define SYS_exit    2
+-#define SYS_wait    3
+-#define SYS_pipe    4
+-#define SYS_read    5
+-#define SYS_kill    6
+-#define SYS_exec    7
+-#define SYS_fstat   8
+-#define SYS_chdir   9
+-#define SYS_dup    10
+-#define SYS_getpid 11
+-#define SYS_sbrk   12
+-#define SYS_sleep  13
+-#define SYS_uptime 14
+-#define SYS_open   15
+-#define SYS_write  16
+-#define SYS_mknod  17
+-#define SYS_unlink 18
+-#define SYS_link   19
+-#define SYS_mkdir  20
+-#define SYS_close  21
++#define SYS_fork           1
++#define SYS_exit           2
++#define SYS_wait           3
++#define SYS_pipe           4
++#define SYS_read           5
++#define SYS_kill           6
++#define SYS_exec           7
++#define SYS_fstat          8
++#define SYS_chdir          9
++#define SYS_dup           10
++#define SYS_getpid        11
++#define SYS_sbrk          12
++#define SYS_sleep         13 
++#define SYS_uptime        14
++#define SYS_open          15
++#define SYS_write         16
++#define SYS_mknod         17
++#define SYS_unlink        18
++#define SYS_link          19
++#define SYS_mkdir         20
++#define SYS_close         21
 +#define SYS_thread_create 22
-+#define SYS_thread_join 23
-+#define SYS_thread_exit 24
-+#define SYS_thread_yield 25
-+#define SYS_thread_sleep 26
-+#define SYS_thread_wake 27
++#define SYS_thread_join   23
++#define SYS_thread_exit   24
++#define SYS_thread_yield  25
++#define SYS_thread_sleep  26
++#define SYS_thread_wake   27
 diff --git a/kernel/sysproc.c b/kernel/sysproc.c
-index 1de184e..95dcbfe 100644
+index 1de184e..6ba858f 100644
 --- a/kernel/sysproc.c
 +++ b/kernel/sysproc.c
 @@ -89,3 +89,62 @@ sys_uptime(void)
@@ -515,15 +630,15 @@ index 1de184e..95dcbfe 100644
 +uint64
 +sys_thread_create(void)
 +{
-+  uint64 start_routine_address;
-+  uint64 argument_address;
-+  uint64 stack_address;
++  uint64 function;
++  uint64 argument;
++  uint64 stack;
 +
-+  argaddr(0, &start_routine_address);
-+  argaddr(1, &argument_address);
-+  argaddr(2, &stack_address);
++  argaddr(0, &function);
++  argaddr(1, &argument);
++  argaddr(2, &stack);
 +
-+  return thread_make((void (*)(void *))start_routine_address, (void *)argument_address, (void *)stack_address);
++  return thread_make((void (*)(void *))function, (void *)argument, (void *)stack);
 +}
 +
 +uint64
@@ -550,34 +665,36 @@ index 1de184e..95dcbfe 100644
 +uint64
 +sys_thread_sleep(void)
 +{
-+  uint64 va;
-+  int value;
++  uint64 virt_address;
++  int val;
 +
-+  argaddr(0, &va);
-+  argint(1, &value);
++  argaddr(0, &virt_address);
++  argint(1, &val);
 +
-+  return thread_sleep(va, value);
++  return thread_sleep(virt_address, val);
 +
 +}
 +uint64
 +sys_thread_wake(void)
 +{
-+  uint64 va;
++  uint64 virt_address;
 +  uint64 count;
 +
-+  argaddr(0, &va);
++  argaddr(0, &virt_address);
 +  argaddr(1, &count);
 +
-+  return thread_wake(va, count);
++  return thread_wake(virt_address, count);
 +}
 diff --git a/kernel/vm.c b/kernel/vm.c
-index 9f69783..f34eeeb 100644
+index 9f69783..9cb0eb8 100644
 --- a/kernel/vm.c
 +++ b/kernel/vm.c
-@@ -296,6 +296,14 @@ uvmfree(pagetable_t pagetable, uint64 sz)
+@@ -295,6 +295,15 @@ uvmfree(pagetable_t pagetable, uint64 sz)
+     uvmunmap(pagetable, 0, PGROUNDUP(sz)/PGSIZE, 1);
    freewalk(pagetable);
  }
- 
++//Changes the last parametre of uvmunmap that unmaps the virtual address but does not destroy the physical pagetable entry
++//used in thread_freepagetable()
 +void
 +tuvmfree(pagetable_t pagetable, uint64 sz)
 +{
@@ -585,14 +702,15 @@ index 9f69783..f34eeeb 100644
 +    uvmunmap(pagetable, 0, PGROUNDUP(sz)/PGSIZE, 0);
 +  freewalk(pagetable);
 +}
-+
+ 
  // Given a parent process's page table, copy
  // its memory into a child's page table.
- // Copies both the page table and the
-@@ -332,6 +340,21 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+@@ -331,6 +340,22 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+   uvmunmap(new, 0, i / PGSIZE, 1);
    return -1;
  }
- 
++//similar to uvm copy but just maps the new virtual address to existing pagetable address
++//instead of creating new page table entry
 +void
 +tuvmcopy(pagetable_t old, pagetable_t new, uint64 from, uint64 sz)
 +{
@@ -607,13 +725,12 @@ index 9f69783..f34eeeb 100644
 +    mappages(new, i, PGSIZE, (uint64)pa, flags);
 +  }
 +}
-+
+ 
  // mark a PTE invalid for user access.
  // used by exec for the user stack guard page.
- void
 diff --git a/user/conditional_variable.c b/user/conditional_variable.c
 new file mode 100644
-index 0000000..9703f92
+index 0000000..52b85aa
 --- /dev/null
 +++ b/user/conditional_variable.c
 @@ -0,0 +1,48 @@
@@ -648,7 +765,7 @@ index 0000000..9703f92
 +    __sync_synchronize();
 +    // set equal to previous_count + 1 maintaining atomicity, don't want to increment previous_count
 +    int count = __sync_fetch_and_add(&cv->prev_count_waiting, 0) + 1;
-+    
++
 +    // set cv->prevoius_count maintaining atomicity
 +    __sync_bool_compare_and_swap(&cv->count_waiting, cv->count_waiting, count);
 +
@@ -734,7 +851,7 @@ index 0000000..e466a5f
 \ No newline at end of file
 diff --git a/user/producer_consumer.c b/user/producer_consumer.c
 new file mode 100644
-index 0000000..d630bf4
+index 0000000..8ed3d36
 --- /dev/null
 +++ b/user/producer_consumer.c
 @@ -0,0 +1,147 @@
@@ -751,7 +868,7 @@ index 0000000..d630bf4
 +	int front;
 +	int rear;
 +	int size;
-+	
++
 +};
 +void queue_init(struct queue* q)
 +{
@@ -779,7 +896,7 @@ index 0000000..d630bf4
 +}
 +
 +struct queue q;
-+// a mutex object lock 
++// a mutex object lock
 +struct thread_mutex mtx;
 +// a semaphore object empty
 +struct counting_semaphore empty;
@@ -802,7 +919,7 @@ index 0000000..d630bf4
 +}
 +
 +void  ProducerFunc(void * arg)
-+{	
++{
 +    thread_mutex_lock(&print_lock);
 +	printf("%s\n",(char*)arg);
 +    thread_mutex_unlock(&print_lock);
@@ -814,13 +931,13 @@ index 0000000..d630bf4
 +
 +		// wait for mutex lock
 +        thread_mutex_lock(&mtx);
-+		
-+		sleep(1);	
++
++		sleep(1);
 +		queue_push(&q,i);
 +        thread_mutex_lock(&print_lock);
 +		printf("producer produced item %d\n",i);
 +		thread_mutex_unlock(&print_lock);
-+		// unlock mutex lock	
++		// unlock mutex lock
 +        thread_mutex_unlock(&mtx);
 +		// post semaphore full
 +        thread_sem_post(&full);
@@ -836,50 +953,50 @@ index 0000000..d630bf4
 +    thread_mutex_unlock(&print_lock);
 +	int i;
 +	for(i=1;i<=10;i++)
-+	{	
++	{
 +		// wait for semphore full
 +        thread_sem_wait(&full);
 +		// wait for mutex lock
 +        thread_mutex_lock(&mtx);
-+ 		
-+			
++
++
 +		sleep(1);
 +		int item = queue_front(&q);
 +		queue_pop(&q);
 +        thread_mutex_lock(&print_lock);
-+		printf("consumer consumed item %d\n",item);	
++		printf("consumer consumed item %d\n",item);
 +        thread_mutex_unlock(&print_lock);
 +
 +
 +		// unlock mutex lock
 +        thread_mutex_unlock(&mtx);
-+		// post semaphore empty	
-+        thread_sem_post(&empty);	
++		// post semaphore empty
++        thread_sem_post(&empty);
 +	}
 +    thread_exit();
 +    return;
 +}
 +
 +int main(void)
-+{	
-+	
++{
++
 +	init_semaphore();
-+	
++
 +	char * message1 = "i am producer";
 +	char * message2 = "i am consumer";
 +
 +
 +	void *s1, *s2;
-+  	int thread1, thread2, r1, r2;
++	int thread1, thread2, r1, r2;
 +
-+  	s1 = malloc(4096);
-+  	s2 = malloc(4096);
++	s1 = malloc(4096);
++	s2 = malloc(4096);
 +
-+  	thread1 = thread_create(ProducerFunc, (void*)message1, s1);
-+  	thread2 = thread_create(ConsumerFunc, (void*)message2, s2); 
++	thread1 = thread_create(ProducerFunc, (void*)message1, s1);
++	thread2 = thread_create(ConsumerFunc, (void*)message2, s2);
 +
-+  	r1 = thread_join(thread1);
-+  	r2 = thread_join(thread2);	
++	r1 = thread_join(thread1);
++	r2 = thread_join(thread2);
 +
 +	printf("Threads finished: (%d):%d, (%d):%d\n",
 +      thread1, r1, thread2, r2);
@@ -976,10 +1093,10 @@ index 0000000..bde8ad0
 \ No newline at end of file
 diff --git a/user/thread_mutex.c b/user/thread_mutex.c
 new file mode 100644
-index 0000000..51f2aea
+index 0000000..63b9ad9
 --- /dev/null
 +++ b/user/thread_mutex.c
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,23 @@
 +#include "kernel/types.h"
 +#include "kernel/stat.h"
 +#include "user/user.h"
@@ -988,58 +1105,38 @@ index 0000000..51f2aea
 +void thread_mutex_init(struct thread_mutex *mtx)
 +{
 +    mtx->mutex_state=0;
-+    mtx->owner_id=0;
 +}
 +void thread_mutex_lock(struct thread_mutex *mtx)
 +{
-+    int pid = getpid();
-+    if(pid == mtx->owner_id)
-+    {
-+        printf("error:trying to lock owned mutex\n");
-+        exit(-1);
-+    }
++
 +    while(__sync_lock_test_and_set(&mtx->mutex_state, 1) != 0)
 +    {
 +        thread_yield();
 +    }
-+
-+    mtx->owner_id = pid;
-+
 +    __sync_synchronize();
 +}
 +void thread_mutex_unlock(struct thread_mutex *mtx)
 +{
-+    int pid = getpid();
-+
-+    if(mtx->owner_id != pid)
-+    {
-+        printf("error:trying to unlock unowned mutex\n");
-+        exit(-1);
-+    }
-+
-+    mtx->owner_id = 0;
-+
 +    __sync_synchronize();
 +    __sync_lock_release(&mtx->mutex_state);
 +}
 diff --git a/user/thread_mutex.h b/user/thread_mutex.h
 new file mode 100644
-index 0000000..4c9b27a
+index 0000000..1167414
 --- /dev/null
 +++ b/user/thread_mutex.h
-@@ -0,0 +1,5 @@
+@@ -0,0 +1,4 @@
 +struct thread_mutex
 +{
 +    int mutex_state;
-+    int owner_id;
 +};
 \ No newline at end of file
 diff --git a/user/thread_spinlock.c b/user/thread_spinlock.c
 new file mode 100644
-index 0000000..974cac5
+index 0000000..f980c28
 --- /dev/null
 +++ b/user/thread_spinlock.c
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,22 @@
 +#include "kernel/types.h"
 +#include "kernel/stat.h"
 +#include "user/user.h"
@@ -1049,48 +1146,28 @@ index 0000000..974cac5
 +void thread_spin_init(struct thread_spinlock *lk)
 +{
 +    lk->locked_state=0;
-+    lk->owner_id=0;
 +}
 +
 +void thread_spin_lock(struct thread_spinlock *lk)
 +{
-+    int pid = getpid();
-+
-+    if(lk->owner_id == pid)
-+    {
-+        printf("error: attempt to lock owned spinlock\n");
-+        exit(-1);
-+    }
-+
 +    while(__sync_lock_test_and_set(&lk->locked_state, 1) != 0);
-+    lk->owner_id=pid;
 +    __sync_synchronize();
 +
 +}
 +void thread_spin_unlock(struct thread_spinlock *lk)
 +{
-+    int pid = getpid();
-+    if(lk->owner_id != pid)
-+    {
-+        printf("error: attempt to unlock spinlock not owned\n");
-+        exit(-1);
-+    }
-+
-+    lk->owner_id = 0;
-+
 +    __sync_synchronize();
 +    __sync_lock_release(&lk->locked_state);
 +}
 diff --git a/user/thread_spinlock.h b/user/thread_spinlock.h
 new file mode 100644
-index 0000000..8210118
+index 0000000..3b9dc28
 --- /dev/null
 +++ b/user/thread_spinlock.h
-@@ -0,0 +1,5 @@
+@@ -0,0 +1,4 @@
 +struct thread_spinlock
 +{
 +    int locked_state;
-+    int owner_id;
 +};
 \ No newline at end of file
 diff --git a/user/user.h b/user/user.h
