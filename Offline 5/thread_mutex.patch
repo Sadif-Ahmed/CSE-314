@@ -1,5 +1,5 @@
 diff --git a/Makefile b/Makefile
-index 39a99d7..46696eb 100644
+index 39a99d7..9e60f63 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -87,7 +87,7 @@ $U/initcode: $U/initcode.S
@@ -7,7 +7,7 @@ index 39a99d7..46696eb 100644
  	etags *.S *.c
  
 -ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
-+ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/thread_spinlock.o $U/thread_mutex.o $U/conditional_variable.o $U/counting_semaphore.o
++ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/thread_spinlock.o $U/thread_mutex.o
  
  _%: %.o $(ULIB)
  	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
@@ -20,22 +20,20 @@ index 39a99d7..46696eb 100644
  fs.img: mkfs/mkfs README $(UPROGS)
  	mkfs/mkfs fs.img README $(UPROGS)
 diff --git a/kernel/defs.h b/kernel/defs.h
-index a3c962b..8af79e7 100644
+index a3c962b..d5d2fa1 100644
 --- a/kernel/defs.h
 +++ b/kernel/defs.h
-@@ -106,6 +106,11 @@ void            yield(void);
+@@ -106,6 +106,9 @@ void            yield(void);
  int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
  int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
  void            procdump(void);
 +void            thread_freepagetable(pagetable_t, uint64);
 +int             thread_make(void (*)(void *), void *, void *);
 +int             thread_sync(int);
-+int             thread_sleep(uint64, int);
-+int             thread_wake(uint64, uint64);
  
  // swtch.S
  void            swtch(struct context*, struct context*);
-@@ -173,6 +178,8 @@ uint64          walkaddr(pagetable_t, uint64);
+@@ -173,6 +176,8 @@ uint64          walkaddr(pagetable_t, uint64);
  int             copyout(pagetable_t, uint64, char *, uint64);
  int             copyin(pagetable_t, char *, uint64, uint64);
  int             copyinstr(pagetable_t, char *, uint64, uint64);
@@ -45,7 +43,7 @@ index a3c962b..8af79e7 100644
  // plic.c
  void            plicinit(void);
 diff --git a/kernel/proc.c b/kernel/proc.c
-index 959b778..2b5d7a8 100644
+index 959b778..7a8d9ef 100644
 --- a/kernel/proc.c
 +++ b/kernel/proc.c
 @@ -15,6 +15,11 @@ struct proc *initproc;
@@ -286,7 +284,7 @@ index 959b778..2b5d7a8 100644
    // Still holding p->lock from scheduler.
    release(&myproc()->lock);
  
-@@ -681,3 +812,156 @@ procdump(void)
+@@ -681,3 +812,116 @@ procdump(void)
      printf("\n");
    }
  }
@@ -403,47 +401,6 @@ index 959b778..2b5d7a8 100644
 +    sleep(p, &wait_lock);  //DOC: wait-sleep
 +  }
 +}
-+int thread_sleep(uint64 va, int value)
-+{
-+  struct proc *p = myproc();
-+
-+  acquire(p->memlock_parent);
-+
-+  uint64 va0 = PGROUNDDOWN(va);
-+  uint64 pa = walkaddr(p->pagetable, va0) + va - va0;
-+
-+  if(__sync_bool_compare_and_swap((int *)pa, value, value))
-+  {
-+    sleep((void *)pa, p->memlock_parent);
-+  }
-+
-+  release(p->memlock_parent);
-+
-+  return 0;
-+}
-+int thread_wake(uint64 va, uint64 count)
-+{
-+  struct proc *p = myproc();
-+
-+  acquire(p->memlock_parent);
-+
-+  uint64 va0 = PGROUNDDOWN(va);
-+  uint64 pa = walkaddr(p->pagetable, va0) + va - va0;
-+  struct proc * pp;
-+  for(pp = proc; count > 0 && pp < &proc[NPROC]; pp++){
-+    acquire(&pp->lock);
-+    if(pp->chan == (void *)pa && pp->state == SLEEPING){
-+      pp->state = RUNNABLE;
-+      --count;
-+    }
-+    release(&pp->lock);
-+  }
-+
-+  release(p->memlock_parent);
-+
-+  return 0;
-+}
-\ No newline at end of file
 diff --git a/kernel/proc.h b/kernel/proc.h
 index d021857..666b799 100644
 --- a/kernel/proc.h
@@ -459,10 +416,10 @@ index d021857..666b799 100644
 +  struct proc *origin_proc;      //Pointer to origin process
  };
 diff --git a/kernel/syscall.c b/kernel/syscall.c
-index ed65409..fcf0dbd 100644
+index ed65409..85da609 100644
 --- a/kernel/syscall.c
 +++ b/kernel/syscall.c
-@@ -101,6 +101,12 @@ extern uint64 sys_unlink(void);
+@@ -101,6 +101,10 @@ extern uint64 sys_unlink(void);
  extern uint64 sys_link(void);
  extern uint64 sys_mkdir(void);
  extern uint64 sys_close(void);
@@ -470,12 +427,10 @@ index ed65409..fcf0dbd 100644
 +extern uint64 sys_thread_join(void);
 +extern uint64 sys_thread_exit(void);
 +extern uint64 sys_thread_yield(void);
-+extern uint64 sys_thread_sleep(void);
-+extern uint64 sys_thread_wake(void);
  
  // An array mapping syscall numbers from syscall.h
  // to the function that handles the system call.
-@@ -126,6 +132,12 @@ static uint64 (*syscalls[])(void) = {
+@@ -126,6 +130,10 @@ static uint64 (*syscalls[])(void) = {
  [SYS_link]    sys_link,
  [SYS_mkdir]   sys_mkdir,
  [SYS_close]   sys_close,
@@ -483,16 +438,14 @@ index ed65409..fcf0dbd 100644
 +[SYS_thread_join] sys_thread_join,
 +[SYS_thread_exit] sys_thread_exit,
 +[SYS_thread_yield] sys_thread_yield,
-+[SYS_thread_sleep] sys_thread_sleep,
-+[SYS_thread_wake] sys_thread_wake,
  };
  
  void
 diff --git a/kernel/syscall.h b/kernel/syscall.h
-index bc5f356..c984462 100644
+index bc5f356..45eca15 100644
 --- a/kernel/syscall.h
 +++ b/kernel/syscall.h
-@@ -20,3 +20,9 @@
+@@ -20,3 +20,7 @@
  #define SYS_link   19
  #define SYS_mkdir  20
  #define SYS_close  21
@@ -500,13 +453,11 @@ index bc5f356..c984462 100644
 +#define SYS_thread_join 23
 +#define SYS_thread_exit 24
 +#define SYS_thread_yield 25
-+#define SYS_thread_sleep 26
-+#define SYS_thread_wake 27
 diff --git a/kernel/sysproc.c b/kernel/sysproc.c
-index 1de184e..95dcbfe 100644
+index 1de184e..90dba5a 100644
 --- a/kernel/sysproc.c
 +++ b/kernel/sysproc.c
-@@ -89,3 +89,62 @@ sys_uptime(void)
+@@ -89,3 +89,39 @@ sys_uptime(void)
    release(&tickslock);
    return xticks;
  }
@@ -545,29 +496,6 @@ index 1de184e..95dcbfe 100644
 +{
 +  yield();
 +  return 0;
-+}
-+uint64
-+sys_thread_sleep(void)
-+{
-+  uint64 va;
-+  int value;
-+
-+  argaddr(0, &va);
-+  argint(1, &value);
-+
-+  return thread_sleep(va, value);
-+
-+}
-+uint64
-+sys_thread_wake(void)
-+{
-+  uint64 va;
-+  uint64 count;
-+
-+  argaddr(0, &va);
-+  argaddr(1, &count);
-+
-+  return thread_wake(va, count);
 +}
 diff --git a/kernel/vm.c b/kernel/vm.c
 index 9f69783..f34eeeb 100644
@@ -610,131 +538,9 @@ index 9f69783..f34eeeb 100644
  // mark a PTE invalid for user access.
  // used by exec for the user stack guard page.
  void
-diff --git a/user/conditional_variable.c b/user/conditional_variable.c
-new file mode 100644
-index 0000000..9703f92
---- /dev/null
-+++ b/user/conditional_variable.c
-@@ -0,0 +1,48 @@
-+#include "kernel/types.h"
-+#include "kernel/stat.h"
-+#include "user/user.h"
-+#include "conditional_variable.h"
-+#include "thread_mutex.h"
-+
-+void cond_init(struct condvar *cv)
-+{
-+    cv->count_waiting=0;
-+    cv->prev_count_waiting=0;
-+}
-+
-+void cond_wait(struct condvar *cv,struct thread_mutex *mtx)
-+{
-+    __sync_synchronize();
-+   // just fetch maintaining atomicity, add is not intended
-+    int count = __sync_fetch_and_add(&cv->count_waiting, 0);
-+    // set cv->prevoius_count maintaining atomicity
-+    __sync_bool_compare_and_swap(&cv->prev_count_waiting, cv->prev_count_waiting, count);
-+
-+    thread_mutex_unlock(mtx);
-+    thread_sleep((uint64)&cv->count_waiting, count);
-+    thread_mutex_lock(mtx);
-+
-+}
-+
-+void cond_signal(struct condvar *cv)
-+{
-+    __sync_synchronize();
-+    // set equal to previous_count + 1 maintaining atomicity, don't want to increment previous_count
-+    int count = __sync_fetch_and_add(&cv->prev_count_waiting, 0) + 1;
-+    
-+    // set cv->prevoius_count maintaining atomicity
-+    __sync_bool_compare_and_swap(&cv->count_waiting, cv->count_waiting, count);
-+
-+    thread_wake((uint64)&cv->count_waiting, 1);
-+}
-+
-+void cond_broadcast(struct condvar *cv)
-+{
-+    __sync_synchronize();
-+    // set equal to previous_count + 1 maintaining atomicity, don't want to increment previous_count
-+    int count = __sync_fetch_and_add(&cv->prev_count_waiting, 0) + 1;
-+
-+    // set cv->prevoius_count maintaining atomicity
-+    __sync_bool_compare_and_swap(&cv->count_waiting, cv->count_waiting, count);
-+    thread_wake((uint64)&cv->count_waiting, (unsigned long long)-1);    // (unsigned long long)-1 = UINT64_MAX in std=c++20
-+}
-\ No newline at end of file
-diff --git a/user/conditional_variable.h b/user/conditional_variable.h
-new file mode 100644
-index 0000000..4847454
---- /dev/null
-+++ b/user/conditional_variable.h
-@@ -0,0 +1,5 @@
-+struct condvar
-+{
-+    int count_waiting;
-+    int prev_count_waiting;
-+};
-\ No newline at end of file
-diff --git a/user/counting_semaphore.c b/user/counting_semaphore.c
-new file mode 100644
-index 0000000..c4b0fdb
---- /dev/null
-+++ b/user/counting_semaphore.c
-@@ -0,0 +1,35 @@
-+#include "kernel/types.h"
-+#include "kernel/stat.h"
-+#include "user/user.h"
-+#include "conditional_variable.h"
-+#include "thread_mutex.h"
-+#include "counting_semaphore.h"
-+
-+int sem_init(struct semaphore *sem,int value)
-+{
-+    sem->count=value;
-+    thread_mutex_init(&sem->mtx);
-+    cond_init(&sem->cv);
-+    return 0;
-+}
-+int sem_post(struct semaphore *sem)
-+{
-+    thread_mutex_lock(&sem->mtx);
-+    sem->count++;
-+    if(sem->count==1)
-+    {
-+        cond_signal(&sem->cv);
-+    }
-+    thread_mutex_unlock(&sem->mtx);
-+    return 0;
-+}
-+int sem_wait(struct semaphore *sem)
-+{
-+    thread_mutex_lock(&sem->mtx);
-+    while (sem->count == 0) {
-+        cond_wait(&sem->cv, &sem->mtx); /*unlock mutex, wait, relock mutex */
-+    }
-+    sem->count--;
-+    thread_mutex_unlock(&sem->mtx);
-+    return 0;
-+}
-diff --git a/user/counting_semaphore.h b/user/counting_semaphore.h
-new file mode 100644
-index 0000000..14b080f
---- /dev/null
-+++ b/user/counting_semaphore.h
-@@ -0,0 +1,7 @@
-+
-+struct semaphore
-+{
-+    int count;
-+    struct thread_mutex mtx;
-+    struct condvar cv;
-+};
-\ No newline at end of file
 diff --git a/user/thread.c b/user/thread.c
 new file mode 100644
-index 0000000..bde8ad0
+index 0000000..9a71038
 --- /dev/null
 +++ b/user/thread.c
 @@ -0,0 +1,82 @@
@@ -776,12 +582,12 @@ index 0000000..bde8ad0
 +        thread_mutex_lock(&mlock);
 +         old = total_balance;
 +         delay(100000);
-+	     if(old != total_balance)
++	     if(old != total_balance) 
 +         {
 +            thread_mutex_lock(&printlock);
 +            printf("we will miss an update. old: %d total_balance: %d\n", old, total_balance);
 +            thread_mutex_unlock(&printlock);
-+         }
++         } 
 +         total_balance = old + 1;
 +         thread_mutex_unlock(&mlock);
 +         thread_spin_unlock(&lock);
@@ -823,7 +629,7 @@ index 0000000..bde8ad0
 \ No newline at end of file
 diff --git a/user/thread_mutex.c b/user/thread_mutex.c
 new file mode 100644
-index 0000000..51f2aea
+index 0000000..0116e9d
 --- /dev/null
 +++ b/user/thread_mutex.c
 @@ -0,0 +1,42 @@
@@ -852,7 +658,7 @@ index 0000000..51f2aea
 +
 +    mtx->owner_id = pid;
 +
-+    __sync_synchronize();
++    __sync_synchronize();    
 +}
 +void thread_mutex_unlock(struct thread_mutex *mtx)
 +{
@@ -883,10 +689,10 @@ index 0000000..4c9b27a
 \ No newline at end of file
 diff --git a/user/thread_spinlock.c b/user/thread_spinlock.c
 new file mode 100644
-index 0000000..974cac5
+index 0000000..ececbe9
 --- /dev/null
 +++ b/user/thread_spinlock.c
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,43 @@
 +#include "kernel/types.h"
 +#include "kernel/stat.h"
 +#include "user/user.h"
@@ -916,7 +722,7 @@ index 0000000..974cac5
 +}
 +void thread_spin_unlock(struct thread_spinlock *lk)
 +{
-+    int pid = getpid();
++    int pid = getpid();  
 +    if(lk->owner_id != pid)
 +    {
 +        printf("error: attempt to unlock spinlock not owned\n");
@@ -928,6 +734,8 @@ index 0000000..974cac5
 +    __sync_synchronize();
 +    __sync_lock_release(&lk->locked_state);
 +}
++
++
 diff --git a/user/thread_spinlock.h b/user/thread_spinlock.h
 new file mode 100644
 index 0000000..8210118
@@ -941,19 +749,17 @@ index 0000000..8210118
 +};
 \ No newline at end of file
 diff --git a/user/user.h b/user/user.h
-index 4d398d5..f6608bb 100644
+index 4d398d5..bec4f08 100644
 --- a/user/user.h
 +++ b/user/user.h
-@@ -1,4 +1,8 @@
+@@ -1,4 +1,6 @@
  struct stat;
 +struct thread_spinlock;
 +struct thread_mutex;
-+struct condvar;
-+struct semaphore;
  
  // system calls
  int fork(void);
-@@ -22,6 +26,12 @@ int getpid(void);
+@@ -22,6 +24,10 @@ int getpid(void);
  char* sbrk(int);
  int sleep(int);
  int uptime(void);
@@ -961,12 +767,10 @@ index 4d398d5..f6608bb 100644
 +int thread_join(int);
 +int thread_exit(void);
 +int thread_yield(void);
-+int thread_sleep(uint64, int);
-+int thread_wake(uint64, uint64);
  
  // ulib.c
  int stat(const char*, struct stat*);
-@@ -39,3 +49,24 @@ void free(void*);
+@@ -39,3 +45,13 @@ void free(void*);
  int atoi(const char*);
  int memcmp(const void *, const void *, uint);
  void *memcpy(void *, const void *, uint);
@@ -980,23 +784,12 @@ index 4d398d5..f6608bb 100644
 +void thread_spin_init(struct thread_spinlock*);
 +void thread_spin_lock(struct thread_spinlock*);
 +void thread_spin_unlock(struct thread_spinlock*);
-+
-+// conditional_variable.c
-+void cond_init(struct condvar*);
-+void cond_wait(struct condvar*,struct thread_mutex*);
-+void cond_signal(struct condvar*);
-+void cond_broadcast(struct condvar*);
-+
-+// counting_semaphore.c
-+int sem_init(struct semaphore*,int);
-+int sem_post(struct semaphore*);
-+int sem_wait(struct semaphore*);
 \ No newline at end of file
 diff --git a/user/usys.pl b/user/usys.pl
-index 01e426e..c6c0656 100755
+index 01e426e..6b2cff0 100755
 --- a/user/usys.pl
 +++ b/user/usys.pl
-@@ -36,3 +36,9 @@ entry("getpid");
+@@ -36,3 +36,7 @@ entry("getpid");
  entry("sbrk");
  entry("sleep");
  entry("uptime");
@@ -1004,6 +797,4 @@ index 01e426e..c6c0656 100755
 +entry("thread_join");
 +entry("thread_exit");
 +entry("thread_yield");
-+entry("thread_sleep");
-+entry("thread_wake");
 \ No newline at end of file
